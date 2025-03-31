@@ -11,7 +11,7 @@
  Target Server Version : 80200
  File Encoding         : 65001
 
- Date: 31/03/2025 14:14:53
+ Date: 31/03/2025 19:41:52
 */
 
 SET NAMES utf8mb4;
@@ -57,6 +57,7 @@ CREATE TABLE `comment`  (
   `parent_id` bigint NOT NULL COMMENT '如果评论回复了某条评论，此字段为被回复的评论id，反之为-1',
   `content` tinytext CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '评论内容',
   `create_time` timestamp(0) NOT NULL COMMENT '评论发布时间',
+  `user_id` bigint NOT NULL COMMENT '评论的用户id',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
