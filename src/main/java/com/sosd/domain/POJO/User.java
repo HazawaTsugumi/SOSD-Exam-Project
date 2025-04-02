@@ -47,4 +47,10 @@ public class User {
      */
     @TableField("`email`")
     private String email;
+
+    /**
+     * 该用户的角色，用于授权
+     */
+    @TableField("`role`")
+    private Long role;
 }
