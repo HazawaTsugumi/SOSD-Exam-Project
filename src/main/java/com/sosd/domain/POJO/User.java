@@ -53,4 +53,10 @@ public class User {
      */
     @TableField("`role`")
     private Long role;
+
+    /**
+     * 该用户的名字
+     */
+    @TableField("`name`")
+    private String name;
 }
