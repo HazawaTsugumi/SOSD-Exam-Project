@@ -11,7 +11,7 @@
  Target Server Version : 80200
  File Encoding         : 65001
 
- Date: 02/04/2025 22:01:48
+ Date: 05/04/2025 15:27:17
 */
 
 SET NAMES utf8mb4;
@@ -36,6 +36,10 @@ CREATE TABLE `blog`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
+-- Records of blog
+-- ----------------------------
+
+-- ----------------------------
 -- Table structure for collect
 -- ----------------------------
 DROP TABLE IF EXISTS `collect`;
@@ -46,6 +50,10 @@ CREATE TABLE `collect`  (
   `create_time` timestamp(0) NOT NULL COMMENT '收藏时间',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of collect
+-- ----------------------------
 
 -- ----------------------------
 -- Table structure for comment
@@ -62,6 +70,10 @@ CREATE TABLE `comment`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
+-- Records of comment
+-- ----------------------------
+
+-- ----------------------------
 -- Table structure for like
 -- ----------------------------
 DROP TABLE IF EXISTS `like`;
@@ -71,6 +83,10 @@ CREATE TABLE `like`  (
   `user_id` bigint NOT NULL COMMENT '用户id',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of like
+-- ----------------------------
 
 -- ----------------------------
 -- Table structure for reading_record
@@ -85,6 +101,10 @@ CREATE TABLE `reading_record`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
+-- Records of reading_record
+-- ----------------------------
+
+-- ----------------------------
 -- Table structure for role
 -- ----------------------------
 DROP TABLE IF EXISTS `role`;
@@ -95,6 +115,10 @@ CREATE TABLE `role`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
+-- Records of role
+-- ----------------------------
+
+-- ----------------------------
 -- Table structure for tag
 -- ----------------------------
 DROP TABLE IF EXISTS `tag`;
@@ -103,6 +127,10 @@ CREATE TABLE `tag`  (
   `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '标签内容',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of tag
+-- ----------------------------
 
 -- ----------------------------
 -- Table structure for tag_blog
@@ -116,16 +144,25 @@ CREATE TABLE `tag_blog`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
+-- Records of tag_blog
+-- ----------------------------
+
+-- ----------------------------
 -- Table structure for user
 -- ----------------------------
 DROP TABLE IF EXISTS `user`;
 CREATE TABLE `user`  (
   `id` bigint NOT NULL COMMENT '用户id',
-  `username` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '用户名',
+  `username` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '用户名（账号）',
   `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '密码',
   `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '邮箱',
   `role` bigint NOT NULL COMMENT '用户角色，与权限管理有关',
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '用户的名称',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of user
+-- ----------------------------
 
 SET FOREIGN_KEY_CHECKS = 1;
