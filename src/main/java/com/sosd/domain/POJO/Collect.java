@@ -3,6 +3,7 @@ package com.sosd.domain.POJO;
 import java.sql.Timestamp;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
@@ -31,18 +32,18 @@ public class Collect {
     /**
      * 收藏用户的id
      */
-    @TableId("`user_id`")
+    @TableField("`user_id`")
     private Long userId;
 
     /**
      * 收藏的文章的id
      */
-    @TableId("`blog_id`")
+    @TableField("`blog_id`")
     private Long blogId;
 
     /**
      * 收藏时间
      */
-    @TableId("`create_time`")
+    @TableField("`create_time`")
     private Timestamp createTime;
 }

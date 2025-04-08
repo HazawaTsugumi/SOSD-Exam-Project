@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.sosd.domain.DO.MyUserDetail;
 import com.sosd.domain.POJO.User;
+import com.sosd.domain.POJO.Role;
+import com.sosd.service.RoleService;
 import com.sosd.service.UserService;
 
 
@@ -25,6 +27,9 @@ public class UserDetailsServiceImpl implements UserDetailsService{
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private RoleService roleService;
+
     /**
      * 根据用户名获取对应的用户对象
      */
@@ -36,13 +41,15 @@ public class UserDetailsServiceImpl implements UserDetailsService{
         lambdaQueryWrapper.eq(User::getUsername, username);
         User user = userService.getOne(lambdaQueryWrapper);
 
+        
         //如果用户不存在，则抛出 UsernameNotFoundException
         if(user == null){
             throw new UsernameNotFoundException("用户名或密码错误");
         }
 
+        Role role = roleService.getById(user.getRole());
         //返回创建好的用户对象
-        return new MyUserDetail(user);
+        return new MyUserDetail(user,role.getName());
     }
     
 }
