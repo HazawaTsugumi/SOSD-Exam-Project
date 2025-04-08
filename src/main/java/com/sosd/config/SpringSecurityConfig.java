@@ -1,6 +1,5 @@
 package com.sosd.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -12,10 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sosd.filters.JsonUsernamePasswordFilter;
-import com.sosd.handler.MyAuthenticationFailureHandler;
-import com.sosd.handler.MyAuthenticationSuccessHandler;
 
 /**
  * 安全框架 Spring Security 的配置类
@@ -23,12 +19,6 @@ import com.sosd.handler.MyAuthenticationSuccessHandler;
  */
 @Configuration
 public class SpringSecurityConfig {
-
-    @Autowired
-    private MyAuthenticationSuccessHandler authenticationSuccessHandler;
-
-    @Autowired
-    private MyAuthenticationFailureHandler authenticationFailureHandler;
     
     /**
      * 配置 Spring Security 的过滤器和拦截器以及放行接口
@@ -37,18 +27,24 @@ public class SpringSecurityConfig {
      * @throws Exception 可能存在的错误我们直接抛出
      */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http,AuthenticationManager authenticationManager,JsonUsernamePasswordFilter jsonUsernamePasswordFilter) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,JsonUsernamePasswordFilter jsonUsernamePasswordFilter) throws Exception {
 
         http
+
+            //对于所有页面需要认证
+            .authorizeHttpRequests(auth -> {
+                auth
+                    .requestMatchers("/user/login/username").permitAll()
+                    .anyRequest().authenticated();
+            })
+
             //设置json字符串过滤器
             .addFilterAt(jsonUsernamePasswordFilter,UsernamePasswordAuthenticationFilter.class)
 
             //设置登录的url，认证成功处理器，认证失败处理器
             .formLogin(login -> {
                 login
-                    .loginProcessingUrl("/user/login/username")
-                    .successHandler(authenticationSuccessHandler)
-                    .failureHandler(authenticationFailureHandler);
+                    .disable();
             })
             
             // 不创建会话，因为我们使用了 Token 而不是 Session
@@ -74,19 +70,6 @@ public class SpringSecurityConfig {
 
         //返回默认的密码编码器便于后续登录注册的密码校验
         return new BCryptPasswordEncoder();
-    }
-
-    /**
-     * 配置将用户名密码登录的 JSON 转化为可以被 UserDetails 识别的类
-     * @param authenticationManager
-     * @return
-     */
-    @Bean
-    public JsonUsernamePasswordFilter jsonUsernamePasswordFilter(AuthenticationManager authenticationManager,ObjectMapper objectMapper){
-        JsonUsernamePasswordFilter jsonUsernamePasswordFilter = new JsonUsernamePasswordFilter();
-        jsonUsernamePasswordFilter.setAuthenticationManager(authenticationManager);
-        jsonUsernamePasswordFilter.setObjectMapper(objectMapper);
-        return jsonUsernamePasswordFilter;
     }
 
     /**

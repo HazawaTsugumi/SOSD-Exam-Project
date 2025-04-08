@@ -14,3 +14,6 @@ spring:
     password: 222316
 my:
   secret: Mashiro # 用于产生 JWT 的密钥
+logging:
+  level:
+    '[com.sosd.filters]': INFO
