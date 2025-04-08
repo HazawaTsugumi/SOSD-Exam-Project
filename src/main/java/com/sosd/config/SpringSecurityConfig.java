@@ -34,7 +34,7 @@ public class SpringSecurityConfig {
             //对于所有页面需要认证
             .authorizeHttpRequests(auth -> {
                 auth
-                    .requestMatchers("/user/login/username").permitAll()
+                    .requestMatchers("/mail/login").permitAll()
                     .anyRequest().authenticated();
             })
 
