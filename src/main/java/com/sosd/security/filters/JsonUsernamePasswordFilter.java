@@ -1,4 +1,4 @@
-package com.sosd.filters;
+package com.sosd.security.filters;
 
 import java.io.IOException;
 import java.util.Map;
@@ -13,8 +13,12 @@ import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sosd.handler.MyAuthenticationFailureHandler;
-import com.sosd.handler.MyAuthenticationSuccessHandler;
+import com.sosd.domain.DO.MyUserDetail;
+import com.sosd.domain.DTO.Result;
+import com.sosd.domain.POJO.User;
+import com.sosd.utils.JwtUtil;
+import com.sosd.utils.ResponsePrint;
+import com.sosd.utils.TokenType;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -28,29 +32,63 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class JsonUsernamePasswordFilter extends UsernamePasswordAuthenticationFilter {
 
-    /**
-     * jackson 的json编码器和解码器
-     */
     @Autowired
     private ObjectMapper objectMapper;
 
-    public JsonUsernamePasswordFilter(MyAuthenticationFailureHandler authenticationFailureHandler,MyAuthenticationSuccessHandler authenticationSuccessHandler) {
-
-        //设置过滤器的处理url，以及认证成功处理器和认证失败处理器
-        setFilterProcessesUrl("/user/login/username");
-        setAuthenticationSuccessHandler(authenticationSuccessHandler);
-        setAuthenticationFailureHandler(authenticationFailureHandler);
-    }
+    @Autowired
+    private ResponsePrint responsePrint;
 
     @Autowired
-    @Override
-    public void setAuthenticationManager(AuthenticationManager authenticationManager){
-        super.setAuthenticationManager(authenticationManager);
+    private JwtUtil jwtUtil;
+
+    /**
+     * 设置过滤器的处理url，以及认证成功处理器和认证失败处理器
+     * @param authenticationFailureHandler
+     * @param authenticationSuccessHandler
+     */
+    public JsonUsernamePasswordFilter(AuthenticationManager manager) {
+
+        setFilterProcessesUrl("/user/login/username");
+
+        //使用 Lambda 表达式设置认证成功处理器
+        setAuthenticationSuccessHandler(
+            (HttpServletRequest request,HttpServletResponse response,Authentication authentication) -> {
+                //构造结果类
+                Result result = Result.success(null);
+
+                //通过权限类获取对应的用户信息
+                MyUserDetail userDetail = (MyUserDetail) authentication.getPrincipal();
+                User user = userDetail.getUser();
+
+                //将用户信息转化成 JSON 字符串并使用 token 工具生成 Token
+                String userInfo = objectMapper.writeValueAsString(user);
+                String accessToken = jwtUtil.generate(userInfo, TokenType.ACCESS);
+                String refreshToken = jwtUtil.generate(userInfo, TokenType.REFRESH);
+
+                //将生成的 token 放入响应头中
+                response.setHeader("AccessToken", accessToken);
+                response.setHeader("RefreshToken", refreshToken);
+
+                //使用打印的工具输出结果到前端
+                responsePrint.print(response, result);
+            }
+        );
+
+        // 使用 Lambda 表达式构建认证失败处理器
+        setAuthenticationFailureHandler(
+            (HttpServletRequest request,HttpServletResponse response,AuthenticationException exception) -> {
+                //构建结果类
+                Result result = Result.fail("用户名或密码错误");
+
+                //输出结果类到前端
+                responsePrint.print(response, result);
+            }
+        );
+
+
+        setAuthenticationManager(manager);
     }
     
-    /**
-     * 自定义的认证处理，用于处理json字符串请求的解析
-     */
     @Override
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
 

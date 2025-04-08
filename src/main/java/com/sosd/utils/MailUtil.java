@@ -39,7 +39,7 @@ public class MailUtil {
         MimeMessageHelper helper = new MimeMessageHelper(message,false);
 
         //设置邮件信息
-        helper.setFrom(sender, "sosd");
+        helper.setFrom(sender, "测试服务器");
         helper.setTo(to);
         helper.setSubject(title);
         helper.setText(content);

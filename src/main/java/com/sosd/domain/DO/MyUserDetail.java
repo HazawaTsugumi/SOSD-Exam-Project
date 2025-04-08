@@ -36,9 +36,6 @@ public class MyUserDetail implements UserDetails{
         this.roleName = roleName;
     }
 
-    /**
-     * 获取用户的权限信息
-     */
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
 
@@ -47,17 +44,11 @@ public class MyUserDetail implements UserDetails{
         return list;
     }
 
-    /**
-     * 获取用户的密码信息
-     */
     @Override
     public String getPassword() {
         return user.getPassword();
     }
 
-    /**
-     * 获取该用户的用户名
-     */
     @Override
     public String getUsername() {
         return user.getUsername();
