@@ -1,5 +1,12 @@
-{"properties": [{
-  "name": "my.secret",
-  "type": "java.lang.String",
-  "description": "A description for 'my.secret'"
-}]}
+{"properties": [
+  {
+    "name": "my.secret",
+    "type": "java.lang.String",
+    "description": "A description for 'my.secret'"
+  },
+  {
+    "name": "my.admin-email",
+    "type": "java.lang.String",
+    "description": "A description for 'my.admin-email'"
+  }
+]}

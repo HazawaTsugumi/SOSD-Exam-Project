@@ -13,6 +13,8 @@ import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sosd.handler.MyAuthenticationFailureHandler;
+import com.sosd.handler.MyAuthenticationSuccessHandler;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -26,26 +28,24 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class JsonUsernamePasswordFilter extends UsernamePasswordAuthenticationFilter {
 
-    public JsonUsernamePasswordFilter() {
-        setFilterProcessesUrl("/user/login/username");
-    }
-
     /**
      * jackson 的json编码器和解码器
      */
     @Autowired
     private ObjectMapper objectMapper;
 
+    public JsonUsernamePasswordFilter(MyAuthenticationFailureHandler authenticationFailureHandler,MyAuthenticationSuccessHandler authenticationSuccessHandler) {
+
+        //设置过滤器的处理url，以及认证成功处理器和认证失败处理器
+        setFilterProcessesUrl("/user/login/username");
+        setAuthenticationSuccessHandler(authenticationSuccessHandler);
+        setAuthenticationFailureHandler(authenticationFailureHandler);
+    }
+
     @Autowired
     @Override
     public void setAuthenticationManager(AuthenticationManager authenticationManager){
         super.setAuthenticationManager(authenticationManager);
-    }
-
-    @Override
-    protected boolean requiresAuthentication(HttpServletRequest request, HttpServletResponse response) {
-        log.info("进入 requiresAuthentication 方法, URL: {},Content-Type: {},Method: {}", request.getRequestURI(),request.getContentType(),request.getMethod());
-        return super.requiresAuthentication(request, response);
     }
     
     /**
@@ -54,11 +54,8 @@ public class JsonUsernamePasswordFilter extends UsernamePasswordAuthenticationFi
     @Override
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
 
-        log.info("进入 attemptAuthentication 方法");
-
         //获取请求信息并判断是否是json字符串
         String contentType = request.getContentType();
-        log.info(contentType);
         if(contentType != null && (contentType.contains("application/json") || contentType.contains("application/json;charset=UTF-8"))){
 
             //如果是json字符串，则解析它为map对象
@@ -75,7 +72,7 @@ public class JsonUsernamePasswordFilter extends UsernamePasswordAuthenticationFi
                 UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);
                 setDetails(request, token);
 
-                //让父类进行认证
+                //认证成功
                 return this.getAuthenticationManager().authenticate(token);
             }catch (IOException e) {
                 throw new RuntimeException(e);
