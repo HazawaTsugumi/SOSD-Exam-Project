@@ -3,30 +3,28 @@ package com.sosd.filters;
 import java.io.IOException;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.Setter;
 
 /**
  * 用于将json字符串转换为可供 Spring Security 识别的过滤器
  * @author 应国浩
  */
-@Component
 public class JsonUsernamePasswordFilter extends UsernamePasswordAuthenticationFilter {
 
     /**
      * jackson 的json编码器和解码器
      */
-    @Autowired
+    @Setter
     private ObjectMapper objectMapper;
     
     /**
@@ -37,6 +35,7 @@ public class JsonUsernamePasswordFilter extends UsernamePasswordAuthenticationFi
 
         //获取请求信息并判断是否是json字符串
         String contentType = request.getContentType();
+        System.out.println(contentType);
         if(contentType != null && (contentType.contains("application/json") || contentType.contains("application/json;charset=UTF-8"))){
 
             //如果是json字符串，则解析它为map对象
@@ -46,6 +45,8 @@ public class JsonUsernamePasswordFilter extends UsernamePasswordAuthenticationFi
                 //获取用户名密码信息
                 String username = auth.get("username");
                 String password = auth.get("password");
+                System.out.println(username);
+                System.out.println(password);
 
                 //新建一个Token对象，并传入用户名和密码
                 UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);

@@ -1,2 +1,16 @@
+spring:
+  profiles:
+    active: ygh
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: ygh
+  datasource:
+    url: jdbc:mysql://localhost:3306/sosd_project?useSSL=false&serverTimezone=Asia/Shanghai
+    username: root
+    password: 222316
 my:
   secret: Mashiro # 用于产生 JWT 的密钥
