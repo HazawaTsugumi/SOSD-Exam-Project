@@ -30,9 +30,6 @@ public class UserDetailsServiceImpl implements UserDetailsService{
     @Autowired
     private RoleService roleService;
 
-    /**
-     * 根据用户名获取对应的用户对象
-     */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 
