@@ -62,8 +62,40 @@ public class MailServiceImpl implements MailService{
         }
 
         //构造邮件消息，发出验证码邮件
-        String message = "您的验证码是[" + String.format("%06d", code) + "],验证码有效期为五分钟，请尽快登录";
+        String message = "您正在进行登录操作，验证码是[" + String.format("%06d", code) + "],验证码有效期为五分钟，请尽快登录";
         mailUtil.sendMessage("登录验证码", message, mail);
+    }
+
+    @Override
+    public void sendCodeByRegister(String mail) throws UnsupportedEncodingException, MessagingException {
+        //查询验证码对应的用户信息
+        LambdaQueryWrapper<User> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        lambdaQueryWrapper.eq(User::getEmail, mail);
+        User user = userService.getOne(lambdaQueryWrapper);
+
+        //如果用户存在，则抛出异常
+        if(user != null) {
+            throw new BizException("该邮箱已经被注册");
+        }
+
+        //检查redis中是否有验证码，如果有，继续发之前的验证码
+        int code = 0;
+        String cache = redisTemplate.opsForValue().get("mail:register:" + mail);
+
+        if(cache != null){
+            code = Integer.parseInt(cache);
+        }else{
+
+            //如果没有，使用随机数生成验证码并存入redis中
+            Random r = new Random();
+            code = r.nextInt(1000000);
+            redisTemplate.opsForValue().set("mail:register:" + mail, Integer.toString(code));
+            redisTemplate.expire("mail:register:" + mail, 5,TimeUnit.MINUTES);
+        }
+
+        //构造邮件消息，发出验证码邮件
+        String message = "您正在进行注册操作，验证码是[" + String.format("%06d", code) + "],验证码有效期为五分钟，请尽快登录";
+        mailUtil.sendMessage("注册验证码", message, mail);
     }
     
 }

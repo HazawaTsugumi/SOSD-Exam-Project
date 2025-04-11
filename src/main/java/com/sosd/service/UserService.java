@@ -10,4 +10,9 @@ import com.sosd.domain.POJO.User;
  */
 public interface UserService extends IService<User>{
     
+    /**
+     * 处理用户登录操作
+     * @param user
+     */
+    public void register(User user,String code);
 }

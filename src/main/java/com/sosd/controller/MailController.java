@@ -25,10 +25,32 @@ public class MailController {
     @Autowired
     private MailService mailService;
 
+    /**
+     * 用于登录请求的获取验证码
+     * @param email
+     * @return
+     * @throws UnsupportedEncodingException
+     * @throws MessagingException
+     */
     @GetMapping("/login")
     public Result sendMessageByLogin(@RequestParam("email") String email) throws UnsupportedEncodingException, MessagingException {
 
         mailService.sendCodeByLogin(email);
+
+        return Result.success(null);
+    }
+
+    /**
+     * 用于注册的获取验证码
+     * @param email
+     * @return
+     * @throws UnsupportedEncodingException
+     * @throws MessagingException
+     */
+    @GetMapping("/register")
+    public Result sendMessageByRegister(@RequestParam("email") String email) throws UnsupportedEncodingException, MessagingException {
+
+        mailService.sendCodeByRegister(email);
 
         return Result.success(null);
     }
