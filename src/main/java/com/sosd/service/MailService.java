@@ -17,4 +17,12 @@ public interface MailService {
      * @throws UnsupportedEncodingException 
      */
     public void sendCodeByLogin(String mail) throws UnsupportedEncodingException, MessagingException;
+
+    /**
+     * 给指定邮件发送注册验证码
+     * @param mail
+     * @throws MessagingException 
+     * @throws UnsupportedEncodingException 
+     */
+    public void sendCodeByRegister(String mail) throws UnsupportedEncodingException, MessagingException;
 }
