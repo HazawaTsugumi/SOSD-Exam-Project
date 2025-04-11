@@ -13,6 +13,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import com.sosd.security.filters.EmailCheckFilter;
 import com.sosd.security.filters.JsonUsernamePasswordFilter;
+import com.sosd.security.filters.TokenCheckFilter;
 
 /**
  * 安全框架 Spring Security 的配置类
@@ -28,7 +29,7 @@ public class SpringSecurityConfig {
      * @throws Exception 可能存在的错误我们直接抛出
      */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http,JsonUsernamePasswordFilter jsonUsernamePasswordFilter, EmailCheckFilter emailCheckFilter) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,JsonUsernamePasswordFilter jsonUsernamePasswordFilter, EmailCheckFilter emailCheckFilter,TokenCheckFilter tokenCheckFilter) throws Exception {
 
         http
 
@@ -44,6 +45,9 @@ public class SpringSecurityConfig {
 
             //设置邮箱验证码登录过滤器
             .addFilterAt(emailCheckFilter, UsernamePasswordAuthenticationFilter.class)
+
+            //设置检验 token 的过滤器
+            .addFilterBefore(tokenCheckFilter, UsernamePasswordAuthenticationFilter.class)
 
             //设置登录的url，认证成功处理器，认证失败处理器
             .formLogin(login -> {

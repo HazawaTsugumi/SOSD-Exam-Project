@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
@@ -46,8 +47,11 @@ public class EmailAuthenticationProvider implements AuthenticationProvider{
         
         //如果redis中没存或验证码不正确，直接抛出异常
         if(cache == null || !cache.equals(code)){
-            throw new RuntimeException("验证码错误或已过期");
+            throw new BadCredentialsException("验证码错误或已过期");
         }
+
+        //如果存在验证码则删除对应的验证码
+        redisTemplate.delete("mail:login:" + email);
 
         //获取邮箱对应的用户
         LambdaQueryWrapper<User> lambdaQueryWrapper = new LambdaQueryWrapper<>();
