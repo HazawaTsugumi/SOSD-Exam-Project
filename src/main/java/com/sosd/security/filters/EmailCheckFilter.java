@@ -8,13 +8,18 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter;
-import org.springframework.security.web.authentication.AuthenticationFailureHandler;
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sosd.domain.DTO.Result;
+import com.sosd.domain.POJO.User;
 import com.sosd.security.tokens.EmailAuthenticationToken;
+import com.sosd.service.UserService;
+import com.sosd.utils.JwtUtil;
+import com.sosd.utils.ResponsePrint;
+import com.sosd.utils.TokenType;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,18 +35,59 @@ public class EmailCheckFilter extends AbstractAuthenticationProcessingFilter{
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private ResponsePrint responsePrint;
+
     /**
      * 设置过滤器的处理url，以及认证成功处理器和认证失败处理器
      * @param successHandler
      * @param failureHandler
      * @param manager
      */
-    public EmailCheckFilter(AuthenticationSuccessHandler successHandler,AuthenticationFailureHandler failureHandler,AuthenticationManager manager){
+    public EmailCheckFilter(AuthenticationManager manager){
         super("/user/login/mail");
 
-        //TODO: 将认证成功处理器和认证失败处理器改成 Lambda 表达式
-        setAuthenticationSuccessHandler(successHandler);
-        setAuthenticationFailureHandler(failureHandler);
+        setAuthenticationSuccessHandler(
+            (HttpServletRequest request,HttpServletResponse response,Authentication authentication) -> {
+
+                //构造结果类
+                Result result = Result.success(null);
+
+                //获取用户信息
+                String email = (String) authentication.getPrincipal();
+                LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+                queryWrapper.eq(User::getEmail, email);
+                User user = userService.getOne(queryWrapper);
+
+                //使用 JWT 生成 token
+                String userInfo = objectMapper.writeValueAsString(user);
+                String refreshToken = jwtUtil.generate(userInfo, TokenType.REFRESH);
+                String accessToken = jwtUtil.generate(userInfo, TokenType.ACCESS);
+
+                //将 token 存入响应头，并打印响应
+                response.setHeader("AccessToken", accessToken);
+                response.setHeader("RefreshToken", refreshToken);
+                responsePrint.print(response, result);
+            }
+        );
+
+
+        setAuthenticationFailureHandler(
+            (HttpServletRequest request,HttpServletResponse response,AuthenticationException exception) -> {
+
+                //生成错误的结果类
+                Result result = Result.fail("验证码错误");
+
+                //打印响应
+                responsePrint.print(response, result);
+            }
+        );
         setAuthenticationManager(manager);
     }
 
