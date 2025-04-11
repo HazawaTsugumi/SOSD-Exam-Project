@@ -46,8 +46,6 @@ public class EmailCheckFilter extends AbstractAuthenticationProcessingFilter{
 
     /**
      * 设置过滤器的处理url，以及认证成功处理器和认证失败处理器
-     * @param successHandler
-     * @param failureHandler
      * @param manager
      */
     public EmailCheckFilter(AuthenticationManager manager){
