@@ -32,10 +32,12 @@ spring:
       "[mail.smtp.auth]": true
       "[mail.smtp.starttls.enable]": true
       "[mail.smtp.starttls.required]": true
-  
+  elasticsearch:
+    uris: 127.0.0.1:9200
+
+
   data:
     redis:
-
       # redis 的配置信息，包括地址、端口、密码等
       host: 192.168.37.131
       port: 6379
