@@ -51,7 +51,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements Use
         //如果邮箱不存在，说明邮箱未注册
         //判断验证码是否正确
         String cache = redisTemplate.opsForValue().get("mail:register:" + email);
-
+        System.out.println(cache);
+        System.out.println(code);
         //如果验证码不正确，抛出异常
         if(cache == null || !cache.equals(code)){
             throw new BizException("验证码错误，请重试");
