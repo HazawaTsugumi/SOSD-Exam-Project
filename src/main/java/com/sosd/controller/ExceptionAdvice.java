@@ -49,7 +49,7 @@ public class ExceptionAdvice {
         } catch(Exception e) {
             log.error("发送邮件出现错误");
             log.error(exception.getMessage());
-            log.error("Stack Trace:" + exception.getStackTrace());
+            log.error("Stack Trace:" + exception.getStackTrace().toString());
         }
         return Result.fail("出现错误，请联系管理员");
     }

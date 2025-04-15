@@ -41,6 +41,8 @@ public class TokenCheckFilter extends OncePerRequestFilter {
         whiteList.add("/mail/login");
         whiteList.add("/user/login/mail");
         whiteList.add("/mail/register");
+        whiteList.add("/user/register");
+        whiteList.add("/user/refresh");
 
         //如果不需要，直接放行
         if(whiteList.contains(request.getRequestURI())){
