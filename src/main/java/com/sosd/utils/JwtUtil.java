@@ -79,7 +79,7 @@ public class JwtUtil {
      * @param jwt
      * @return
      */
-    public String getUserInfo(String jwt) {
+    public  String getUserInfo(String jwt) {
 
         //解码 JWT 并获取用户信息
         DecodedJWT decodedJWT = JWT.decode(jwt);

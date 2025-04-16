@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
  * 使用 Lombok 组件自动生成getter和setter，无参构造函数，有参构造函数
  * @author 应国浩
  */
-//TODO:存到redis
+
 @TableName("`tag`")
 @Data
 @NoArgsConstructor

@@ -51,3 +51,57 @@ my:
 logging:
   level:
     '[com.sosd.filters]': INFO
+---
+
+# 使用 Spring 的多环境配置
+spring:
+  profiles:
+    active: ygh
+---
+
+spring:
+  config:
+    activate:
+      on-profile: ljkaaaa
+  datasource:
+    #        druid:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/sosd-test?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+  mail:
+
+    # 配置邮件发送者的账号、密码等信息
+    host: smtp.qq.com
+    username: 1293978818@qq.com
+    password: nttkmkrnjwljfhfd
+    port: 465
+    default-encoding: UTF-8
+    protocol: smtps
+    properties:
+      "[mail.smtp.connectiontimeout]": 5000
+      "[mail.smtp.timeout]": 3000
+      "[mail.smtp.writetimeout]": 5000
+      "[mail.smtp.auth]": true
+      "[mail.smtp.starttls.enable]": true
+      "[mail.smtp.starttls.required]": true
+  elasticsearch:
+    uris: 127.0.0.1:9200
+
+
+  data:
+    redis:
+      # redis 的配置信息，包括地址、端口、密码等
+      host: localhost
+      port: 6379
+      database: 0
+
+# 用于产生 JWT 的密钥
+my:
+  secret: Mashiro
+  admin-email: 1293978818@qq.com
+logging:
+  level:
+    '[com.sosd.filters]': INFO
+---
+
