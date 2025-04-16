@@ -101,4 +101,16 @@ public class Blog {
     @Field(type = FieldType.Keyword)
     @TableField("tag")
     private String tag;
+
+    @Field(type = FieldType.Keyword,index = false)
+    @TableField("user")
+    private String user;
+
+    @Field(type = FieldType.Long,index = false)
+    @TableField("read")
+    private Long read;
+
+    @Field(type = FieldType.Long,index = false)
+    @TableField("comment")
+    private Long comment;
 }
