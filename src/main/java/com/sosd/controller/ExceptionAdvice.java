@@ -45,7 +45,7 @@ public class ExceptionAdvice {
         log.error(exception.getMessage());
         log.error("Stack Trace:" + exception.getStackTrace());
         try {
-            mailUtil.sendMessage("服务器出现错误", exception.getMessage() + "\n" + "Stack Trace:" + exception.getStackTrace(),adminEmail);
+            mailUtil.sendMessage("服务器出现错误", exception.getMessage() + "\n" + "Stack Trace:" + exception.getStackTrace().toString(),adminEmail);
         } catch(Exception e) {
             log.error("发送邮件出现错误");
             log.error(exception.getMessage());
