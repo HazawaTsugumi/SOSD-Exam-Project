@@ -1,7 +1,6 @@
 package com.sosd.domain.VO;
 
 import lombok.Data;
-import org.springframework.cglib.core.Local;
 
 import java.sql.Timestamp;
 
