@@ -1,8 +1,0 @@
-ljk:
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    host: localhost
-    port: 3306
-    database: sosd-test
-    username: root
-    password: 123A456s789d

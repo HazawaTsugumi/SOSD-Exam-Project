@@ -1,6 +1,5 @@
 package com.sosd.service.impl;
 
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sosd.Exception.BizException;
