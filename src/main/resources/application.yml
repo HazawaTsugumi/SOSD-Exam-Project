@@ -2,6 +2,8 @@
 # 使用 Spring 的多环境配置
 spring:
   profiles:
+
+    #这里配置 ljkaaaa 将使用你的配置
     active: ygh
 
 ---
@@ -32,8 +34,6 @@ spring:
       "[mail.smtp.auth]": true
       "[mail.smtp.starttls.enable]": true
       "[mail.smtp.starttls.required]": true
-  elasticsearch:
-    uris: 127.0.0.1:9200
 
 
   data:
@@ -51,12 +51,7 @@ my:
 logging:
   level:
     '[com.sosd.filters]': INFO
----
 
-# 使用 Spring 的多环境配置
-spring:
-  profiles:
-    active: ygh
 ---
 
 spring:
