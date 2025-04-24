@@ -25,4 +25,12 @@ public interface MailService {
      * @throws UnsupportedEncodingException 
      */
     public void sendCodeByRegister(String mail) throws UnsupportedEncodingException, MessagingException;
+
+    /**
+     * 忘记密码发送验证码
+     * @param mail
+     * @throws MessagingException 
+     * @throws UnsupportedEncodingException 
+     */
+    public void sendCodeForForget(String mail) throws UnsupportedEncodingException, MessagingException;
 }

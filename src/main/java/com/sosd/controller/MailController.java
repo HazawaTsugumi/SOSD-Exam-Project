@@ -4,14 +4,17 @@ import java.io.UnsupportedEncodingException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.sosd.domain.DTO.MessageSendDTO;
 import com.sosd.domain.DTO.Result;
 import com.sosd.service.MailService;
 
 import jakarta.mail.MessagingException;
-import org.springframework.web.bind.annotation.GetMapping;
+import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 
 /**
@@ -20,6 +23,7 @@ import org.springframework.web.bind.annotation.GetMapping;
  */
 @RestController
 @RequestMapping("/mail")
+@Slf4j
 public class MailController {
     
     @Autowired
@@ -32,10 +36,10 @@ public class MailController {
      * @throws UnsupportedEncodingException
      * @throws MessagingException
      */
-    @GetMapping("/login")
-    public Result sendMessageByLogin(@RequestParam("email") String email) throws UnsupportedEncodingException, MessagingException {
+    @PostMapping("/login")
+    public Result sendMessageByLogin(@RequestBody MessageSendDTO dto) throws UnsupportedEncodingException, MessagingException {
 
-        mailService.sendCodeByLogin(email);
+        mailService.sendCodeByLogin(dto.getEmail());
 
         return Result.success(null);
     }
@@ -47,11 +51,16 @@ public class MailController {
      * @throws UnsupportedEncodingException
      * @throws MessagingException
      */
-    @GetMapping("/register")
-    public Result sendMessageByRegister(@RequestParam("email") String email) throws UnsupportedEncodingException, MessagingException {
+    @PostMapping("/register")
+    public Result sendMessageByRegister(@RequestBody MessageSendDTO dto) throws UnsupportedEncodingException, MessagingException {
 
-        mailService.sendCodeByRegister(email);
+        mailService.sendCodeByRegister(dto.getEmail());
 
+        return Result.success(null);
+    }
+
+    public Result sendMessageByForget(@RequestBody MessageSendDTO dto){
+        
         return Result.success(null);
     }
 }
