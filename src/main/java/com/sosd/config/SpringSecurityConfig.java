@@ -1,8 +1,10 @@
 package com.sosd.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -21,6 +23,9 @@ import com.sosd.security.filters.TokenCheckFilter;
  */
 @Configuration
 public class SpringSecurityConfig {
+
+    @Autowired
+    private DaoAuthenticationProvider daoAuthenticationProvider;
     
     /**
      * 配置 Spring Security 的过滤器和拦截器以及放行接口
@@ -36,15 +41,17 @@ public class SpringSecurityConfig {
             //对于所有页面需要认证
             .authorizeHttpRequests(auth -> {
                 auth
-                    .requestMatchers("/mail/login","/mail/register","/user/register","/user/refresh").permitAll()
+                    .requestMatchers("/mail/login","/mail/register","/user/register","/user/refresh","/mail/forget","/user/forget","/user/login/username","/user/login/mail").permitAll()
                     .anyRequest().authenticated();
             })
+
+            .authenticationProvider(daoAuthenticationProvider)
 
             //设置json字符串过滤器
             .addFilterAt(jsonUsernamePasswordFilter,UsernamePasswordAuthenticationFilter.class)
 
             //设置邮箱验证码登录过滤器
-            .addFilterAt(emailCheckFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(emailCheckFilter, JsonUsernamePasswordFilter.class)
 
             //设置检验 token 的过滤器
             .addFilterBefore(tokenCheckFilter, UsernamePasswordAuthenticationFilter.class)

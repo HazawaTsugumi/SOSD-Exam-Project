@@ -13,12 +13,15 @@ import com.sosd.domain.POJO.Role;
 import com.sosd.service.RoleService;
 import com.sosd.service.UserService;
 
+import lombok.extern.slf4j.Slf4j;
+
 
 /**
  * Spring Security 内置的处理用户权限信息的 service 层接口的实现类
  * @author 应国浩
  */
 @Service
+@Slf4j
 public class UserDetailsServiceImpl implements UserDetailsService{
 
     /**
@@ -44,6 +47,9 @@ public class UserDetailsServiceImpl implements UserDetailsService{
             throw new UsernameNotFoundException("用户名或密码错误");
         }
 
+        log.info(user.getUsername());
+        log.info(user.getPassword());
+        
         Role role = roleService.getById(user.getRole());
         //返回创建好的用户对象
         return new MyUserDetail(user,role.getName());

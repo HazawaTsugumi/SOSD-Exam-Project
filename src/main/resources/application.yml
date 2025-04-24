@@ -55,6 +55,7 @@ my:
 logging:
   level:
     '[com.sosd.filters]': INFO
+    '[org.springframework.security]': DEBUG
 
 ---
 
