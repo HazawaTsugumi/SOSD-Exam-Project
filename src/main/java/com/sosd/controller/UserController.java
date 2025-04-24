@@ -1,7 +1,6 @@
 package com.sosd.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -52,7 +51,7 @@ public class UserController {
      * @param response
      * @return
      */
-    @GetMapping("/refresh")
+    @PostMapping("/refresh")
     public Result refresh(@RequestHeader("Refresh-Token") String refreshToken,HttpServletResponse response){
 
         if(jwtUtil.verify(refreshToken)){
@@ -65,5 +64,13 @@ public class UserController {
         }
 
         return Result.fail("登录认证已失效，请重试", -1);
+    }
+
+    @PostMapping("/forget")
+    public Result forgetPassword(@RequestBody UserDTO dto){
+
+        User user = new User(null, null, dto.getPassword(), dto.getEmail(), null, null);
+        userService.forgetPassword(user, dto.getCode());
+        return Result.success(null);
     }
 }

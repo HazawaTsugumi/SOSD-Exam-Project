@@ -15,4 +15,11 @@ public interface UserService extends IService<User>{
      * @param user
      */
     public void register(User user,String code);
+
+    /**
+     * 处理重置密码的操作
+     * @param user
+     * @param code
+     */
+    public void forgetPassword(User user,String code);
 }

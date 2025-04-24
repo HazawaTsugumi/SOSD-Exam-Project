@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.sosd.Exception.BizException;
+import com.sosd.constant.MessageConstance;
 import com.sosd.domain.POJO.User;
 import com.sosd.service.MailService;
 import com.sosd.service.UserService;
@@ -42,7 +43,7 @@ public class MailServiceImpl implements MailService{
 
         //如果用户不存在，则抛出异常
         if(user == null) {
-            throw new BizException("该邮箱不存在");
+            throw new BizException(MessageConstance.EMAIL_NOT_FOUND);
         }
 
         int code = generateCode(mail, "login");
@@ -59,7 +60,7 @@ public class MailServiceImpl implements MailService{
 
         //如果用户存在，则抛出异常
         if(user != null) {
-            throw new BizException("该邮箱已经被注册");
+            throw new BizException(MessageConstance.EMAIL_IS_USED);
         }
 
         int code = generateCode(mail, "register");
@@ -76,7 +77,7 @@ public class MailServiceImpl implements MailService{
 
         //如果用户不存在，则抛出异常
         if(user == null) {
-            throw new BizException("该邮箱不存在");
+            throw new BizException(MessageConstance.EMAIL_NOT_FOUND);
         }
 
         int code = generateCode(mail, "forget");
@@ -130,7 +131,7 @@ public class MailServiceImpl implements MailService{
      */
     private void sendMessage(String mail,int code,String prefix) throws UnsupportedEncodingException, MessagingException{
         //构造邮件消息，发出验证码邮件
-        String message = "您正在进行" + prefix + "操作，验证码是[" + String.format("%06d", code) + "],验证码有效期为五分钟，请尽快登录";
+        String message = "您正在进行" + prefix + "操作，验证码是[" + String.format("%06d", code) + "],验证码有效期为五分钟，请尽快操作";
         mailUtil.sendMessage("验证码", message, mail);
     }
 
@@ -138,9 +139,9 @@ public class MailServiceImpl implements MailService{
      * 使用正则判断邮件是否合法，如果不合法，则抛出异常
      */
     private void validEmail(String mail){
-        String regex = "/^[A-Za-z0-9\\u4e00-\\u9fa5]+@[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)+$/";
+        String regex = "^[A-Za-z0-9\\u4e00-\\u9fa5]+@[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)+$";
         if(mail == null || !mail.matches(regex)){
-            throw new BizException("请输入正确的邮件格式");
+            throw new BizException(MessageConstance.WRONG_EMAIL_FORMAT);
         }
     }
 }

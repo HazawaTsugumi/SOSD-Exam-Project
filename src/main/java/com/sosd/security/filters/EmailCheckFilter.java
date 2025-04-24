@@ -69,8 +69,8 @@ public class EmailCheckFilter extends AbstractAuthenticationProcessingFilter{
                 String accessToken = jwtUtil.generate(userInfo, TokenType.ACCESS);
 
                 //将 token 存入响应头，并打印响应
-                response.setHeader("AccessToken", accessToken);
-                response.setHeader("RefreshToken", refreshToken);
+                response.setHeader("Access-Token", accessToken);
+                response.setHeader("Refresh-Token", refreshToken);
                 responsePrint.print(response, result);
             }
         );

@@ -3,7 +3,7 @@ package com.sosd.service.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sosd.Exception.BizException;
-import com.sosd.constant.MessageConstant;
+import com.sosd.constant.MessageConstance;
 import com.sosd.domain.DTO.BlogDTO;
 import com.sosd.domain.DTO.PageResult;
 import com.sosd.domain.POJO.Blog;
@@ -159,7 +159,7 @@ public class BlogServiceImpl implements BlogService {
             blogDao.save(blog);
         } catch (Exception e) {
             blogDao.delete(blog);
-            throw new BizException(MessageConstant.Publish_Error);
+            throw new BizException(MessageConstance.PUBLISH_ERROR);
         }
     }
 

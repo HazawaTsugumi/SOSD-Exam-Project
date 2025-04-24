@@ -43,6 +43,8 @@ public class TokenCheckFilter extends OncePerRequestFilter {
         whiteList.add("/mail/register");
         whiteList.add("/user/register");
         whiteList.add("/user/refresh");
+        whiteList.add("/mail/forget");
+        whiteList.add("/user/forget");
 
         //如果不需要，直接放行
         if(whiteList.contains(request.getRequestURI())){

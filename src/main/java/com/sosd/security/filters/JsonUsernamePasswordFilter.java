@@ -66,8 +66,8 @@ public class JsonUsernamePasswordFilter extends UsernamePasswordAuthenticationFi
                 String refreshToken = jwtUtil.generate(userInfo, TokenType.REFRESH);
 
                 //将生成的 token 放入响应头中
-                response.setHeader("AccessToken", accessToken);
-                response.setHeader("RefreshToken", refreshToken);
+                response.setHeader("Access-Token", accessToken);
+                response.setHeader("Refresh-Token", refreshToken);
 
                 //使用打印的工具输出结果到前端
                 responsePrint.print(response, result);
@@ -77,6 +77,8 @@ public class JsonUsernamePasswordFilter extends UsernamePasswordAuthenticationFi
         // 使用 Lambda 表达式构建认证失败处理器
         setAuthenticationFailureHandler(
             (HttpServletRequest request,HttpServletResponse response,AuthenticationException exception) -> {
+
+                log.info(exception.getMessage());
                 //构建结果类
                 Result result = Result.fail("用户名或密码错误");
 
@@ -103,10 +105,10 @@ public class JsonUsernamePasswordFilter extends UsernamePasswordAuthenticationFi
                 //获取用户名密码信息
                 String username = auth.get("username");
                 String password = auth.get("password");
-                System.out.println(username);
-                System.out.println(password);
 
                 //新建一个Token对象，并传入用户名和密码
+                log.info(username);
+                log.info(password);
                 UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);
                 setDetails(request, token);
 

@@ -59,8 +59,18 @@ public class MailController {
         return Result.success(null);
     }
 
-    public Result sendMessageByForget(@RequestBody MessageSendDTO dto){
-        
+    /**
+     * 发送用于重置密码的验证码
+     * @param dto
+     * @return
+     * @throws UnsupportedEncodingException
+     * @throws MessagingException
+     */
+    @PostMapping("/forget")
+    public Result sendMessageByForget(@RequestBody MessageSendDTO dto) throws UnsupportedEncodingException, MessagingException{
+
+        mailService.sendCodeForForget(dto.getEmail());
+
         return Result.success(null);
     }
 }
