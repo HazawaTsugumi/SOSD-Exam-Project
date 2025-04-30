@@ -114,7 +114,7 @@ public class MailServiceImpl implements MailService{
             //如果没有，使用随机数生成验证码并存入redis中
             SecureRandom r = new SecureRandom();
             code = r.nextInt(1000000);
-            redisTemplate.opsForValue().set("mail:" + prefix +":" + mail, Integer.toString(code));
+            redisTemplate.opsForValue().set("mail:" + prefix +":" + mail, String.format("%06d", code));
             redisTemplate.expire("mail:" + prefix +":" + mail, 5,TimeUnit.MINUTES);
         }
 

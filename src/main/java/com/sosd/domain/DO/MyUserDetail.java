@@ -46,7 +46,9 @@ public class MyUserDetail implements UserDetails{
 
     @Override
     public String getPassword() {
-        return user.getPassword();
+        String password = user.getPassword();
+        user.setPassword(null);
+        return password;
     }
 
     @Override

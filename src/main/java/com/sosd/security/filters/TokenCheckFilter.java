@@ -6,10 +6,14 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.NonNull;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sosd.domain.DTO.Result;
+import com.sosd.domain.POJO.User;
 import com.sosd.utils.JwtUtil;
 import com.sosd.utils.ResponsePrint;
 
@@ -30,6 +34,9 @@ public class TokenCheckFilter extends OncePerRequestFilter {
 
     @Autowired
     private ResponsePrint responsePrint;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
@@ -56,7 +63,18 @@ public class TokenCheckFilter extends OncePerRequestFilter {
         String token = request.getHeader("Access-Token");
 
         //如果 Token 没过期，直接放行
-        if(jwtUtil.verify(token)){
+        if(token != null && jwtUtil.verify(token)){
+
+            //获取用户信息
+            String userInfo = jwtUtil.getUserInfo(token);
+            User user = objectMapper.readValue(userInfo, User.class);
+            String username = user.getUsername();
+
+            //设置安全上下文，放行后续请求
+            UsernamePasswordAuthenticationToken authToken =
+                new UsernamePasswordAuthenticationToken(username, null, new ArrayList<>());
+            SecurityContextHolder.getContext().setAuthentication(authToken);
+
             doFilter(request, response, filterChain);
             return;
         }
