@@ -36,14 +36,14 @@ spring:
       "[mail.smtp.starttls.required]": true
 
   elasticsearch:
-    uris: 192.168.37.133:9200
+    uris: 192.168.37.134:9200
     username: elastic
     password: zutzD3x1+tRm+I8mLj+8
 
   data:
     redis:
       # redis 的配置信息，包括地址、端口、密码等
-      host: 192.168.37.133
+      host: 192.168.37.134
       port: 6379
       password: 222316
       database: 0
@@ -52,6 +52,16 @@ spring:
 my:
   secret: Mashiro
   admin-email: 1293978818@qq.com
+  white-list:
+    - /mail/login
+    - /mail/register
+    - /user/register
+    - /user/refresh
+    - /mail/forget
+    - /user/forget
+    - /user/login/username
+    - /user/login/mail
+    - /info/*
 logging:
   level:
     '[com.sosd.filters]': INFO

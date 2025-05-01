@@ -1,6 +1,9 @@
 package com.sosd.config;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -26,6 +29,9 @@ public class SpringSecurityConfig {
 
     @Autowired
     private DaoAuthenticationProvider daoAuthenticationProvider;
+
+    @Value("${my.white-list}")
+    private List<String> whiteList;
     
     /**
      * 配置 Spring Security 的过滤器和拦截器以及放行接口
@@ -41,7 +47,7 @@ public class SpringSecurityConfig {
             //对于所有页面需要认证
             .authorizeHttpRequests(auth -> {
                 auth
-                    .requestMatchers("/mail/login","/mail/register","/user/register","/user/refresh","/mail/forget","/user/forget","/user/login/username","/user/login/mail").permitAll()
+                    .requestMatchers(whiteList.toArray(new String[0])).permitAll()
                     .anyRequest().authenticated();
             })
 

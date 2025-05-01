@@ -5,10 +5,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,27 +40,27 @@ public class TokenCheckFilter extends OncePerRequestFilter {
     @Autowired
     private ObjectMapper objectMapper;
 
+    private AntPathMatcher pathMatcher = new AntPathMatcher();
+
+    @Value("${my.white-list}")
+    private List<String> whiteList;
+
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
             throws ServletException, IOException {
         
-        //判断路径是否需要token，如果不需要，直接放行
-        List<String> whiteList = new ArrayList<>();
-        whiteList.add("/user/login/username");
-        whiteList.add("/mail/login");
-        whiteList.add("/user/login/mail");
-        whiteList.add("/mail/register");
-        whiteList.add("/user/register");
-        whiteList.add("/user/refresh");
-        whiteList.add("/mail/forget");
-        whiteList.add("/user/forget");
+        //从白名单中获取不需要token验证的uri
+        String requestURI = request.getRequestURI();
+        for(String item : whiteList){
 
-        //如果不需要，直接放行
-        if(whiteList.contains(request.getRequestURI())){
-            doFilter(request, response, filterChain);
-            return;
+            //如果与当前请求的uri相同，则放心
+            if(pathMatcher.match(item, requestURI)){
+                doFilter(request, response, filterChain);
+                return;
+            }
         }
 
+        //如果都不匹配，则进行token校验
         //先获取 Token
         String token = request.getHeader("Access-Token");
 

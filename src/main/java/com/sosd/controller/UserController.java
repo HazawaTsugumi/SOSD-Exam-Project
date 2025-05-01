@@ -21,6 +21,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
 
 /**
@@ -106,5 +107,16 @@ public class UserController {
         user = userService.getById(user.getId());
 
         return Result.success(user);
+    }
+
+    /**
+     * 根据id获取用户信息
+     * @param id
+     * @return
+     */
+    @GetMapping("/info/{id}")
+    public Result getUserInfo(@PathVariable("id") Integer id){
+        
+        return Result.success(userService.getById(id));
     }
 }
