@@ -46,9 +46,6 @@ public class UserDetailsServiceImpl implements UserDetailsService{
         if(user == null){
             throw new UsernameNotFoundException("用户名或密码错误");
         }
-
-        log.info(user.getUsername());
-        log.info(user.getPassword());
         
         Role role = roleService.getById(user.getRole());
         //返回创建好的用户对象

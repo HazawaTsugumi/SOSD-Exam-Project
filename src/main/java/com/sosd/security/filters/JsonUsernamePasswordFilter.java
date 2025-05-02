@@ -107,8 +107,6 @@ public class JsonUsernamePasswordFilter extends UsernamePasswordAuthenticationFi
                 String password = auth.get("password");
 
                 //新建一个Token对象，并传入用户名和密码
-                log.info(username);
-                log.info(password);
                 UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);
                 setDetails(request, token);
 
