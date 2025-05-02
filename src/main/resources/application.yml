@@ -15,6 +15,7 @@ spring:
   datasource:
 
     # 配置 MYSQL 数据库的 URL 账号密码
+    driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/sosd_project?useSSL=false&serverTimezone=Asia/Shanghai
     username: root
     password: 222316
@@ -61,7 +62,7 @@ my:
     - /user/forget
     - /user/login/username
     - /user/login/mail
-    - /info/*
+    - /user/info/*
 logging:
   level:
     '[com.sosd.filters]': INFO
