@@ -12,5 +12,7 @@ public class MessageConstance {
 
     public static final String WRONG_VERIFY_CODE = "验证码错误";
 
+    public static final String USER_NOT_FOUND = "该用户不存在";
+
     public static final String PUBLISH_ERROR="文章上传失败";
 }

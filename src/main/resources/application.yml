@@ -53,7 +53,7 @@ spring:
 my:
   secret: Mashiro
   admin-email: 1293978818@qq.com
-  white-list:
+  whitelist:
     - /mail/login
     - /mail/register
     - /user/register
