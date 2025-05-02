@@ -2,10 +2,8 @@ package com.sosd.security.filters;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,6 +12,7 @@ import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sosd.config.MyProperties;
 import com.sosd.domain.DTO.Result;
 import com.sosd.domain.POJO.User;
 import com.sosd.utils.JwtUtil;
@@ -42,8 +41,8 @@ public class TokenCheckFilter extends OncePerRequestFilter {
 
     private AntPathMatcher pathMatcher = new AntPathMatcher();
 
-    @Value("${my.white-list}")
-    private List<String> whiteList;
+    @Autowired
+    private MyProperties properties;
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
@@ -51,7 +50,7 @@ public class TokenCheckFilter extends OncePerRequestFilter {
         
         //从白名单中获取不需要token验证的uri
         String requestURI = request.getRequestURI();
-        for(String item : whiteList){
+        for(String item : properties.getWhitelist()){
 
             //如果与当前请求的uri相同，则放心
             if(pathMatcher.match(item, requestURI)){

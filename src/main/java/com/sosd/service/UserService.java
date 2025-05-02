@@ -22,4 +22,11 @@ public interface UserService extends IService<User>{
      * @param code
      */
     public void forgetPassword(User user,String code);
+
+    /**
+     * 根据用户id获取用户信息
+     * @param id
+     * @return
+     */
+    public User getUserInfoById(Integer id);
 }

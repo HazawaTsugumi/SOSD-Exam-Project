@@ -1,9 +1,6 @@
 package com.sosd.config;
 
-import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -20,18 +17,21 @@ import com.sosd.security.filters.EmailCheckFilter;
 import com.sosd.security.filters.JsonUsernamePasswordFilter;
 import com.sosd.security.filters.TokenCheckFilter;
 
+import lombok.Getter;
+
 /**
  * 安全框架 Spring Security 的配置类
  * @author 应国浩
  */
 @Configuration
+@Getter
 public class SpringSecurityConfig {
 
     @Autowired
     private DaoAuthenticationProvider daoAuthenticationProvider;
 
-    @Value("${my.white-list}")
-    private List<String> whiteList;
+    @Autowired
+    private MyProperties properties;
     
     /**
      * 配置 Spring Security 的过滤器和拦截器以及放行接口
@@ -47,7 +47,7 @@ public class SpringSecurityConfig {
             //对于所有页面需要认证
             .authorizeHttpRequests(auth -> {
                 auth
-                    .requestMatchers(whiteList.toArray(new String[0])).permitAll()
+                    .requestMatchers(properties.getWhitelist().toArray(new String[0])).permitAll()
                     .anyRequest().authenticated();
             })
 
@@ -87,7 +87,7 @@ public class SpringSecurityConfig {
      * @return 密码编码器
      */
     @Bean
-    public PasswordEncoder passwordEncoder() {
+    public static PasswordEncoder passwordEncoder() {
 
         //返回默认的密码编码器便于后续登录注册的密码校验
         return new BCryptPasswordEncoder();
@@ -97,7 +97,7 @@ public class SpringSecurityConfig {
      * 用于登录认证
      */
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception{
+    public static AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception{
         return authenticationConfiguration.getAuthenticationManager();
     }
 }

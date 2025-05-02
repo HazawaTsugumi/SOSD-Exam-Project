@@ -116,4 +116,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements Use
             throw new BizException(MessageConstance.WRONG_EMAIL_FORMAT);
         }
     }
+
+    @Override
+    public User getUserInfoById(Integer id) {
+        User user = this.getById(id);
+        if(user == null){
+            throw new BizException(MessageConstance.USER_NOT_FOUND);
+        }
+        return user;
+    }
 }

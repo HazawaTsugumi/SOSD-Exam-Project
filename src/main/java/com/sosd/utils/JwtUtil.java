@@ -4,13 +4,14 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.sosd.config.MyProperties;
 
 /**
  * 用于生成 JWT，判断 JWT 是否过期以及解析 JWT 的工具类
@@ -22,8 +23,8 @@ public class JwtUtil {
     /**
      * 从配置文件中获取密钥
      */
-    @Value("${my.secret}")
-    private String key;
+    @Autowired
+    private MyProperties properties;
 
     /**
      * 根据用户信息生成 JWT
@@ -49,7 +50,7 @@ public class JwtUtil {
             .withIssuedAt(issuedDate)
             .withExpiresAt(expiredDate)
             .withClaim("userInfo", userInfo)
-            .sign(Algorithm.HMAC256(key));
+            .sign(Algorithm.HMAC256(properties.getSecret()));
     }
 
     /**
@@ -61,7 +62,7 @@ public class JwtUtil {
         try {
 
             // 创建对应的判断器并确认 JWT 是否非法或过期
-            JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(key)).build();
+            JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(properties.getSecret())).build();
             jwtVerifier.verify(jwt);
 
             //如果未抛出异常，则说明该 JWT 合法且未过期

@@ -117,6 +117,6 @@ public class UserController {
     @GetMapping("/info/{id}")
     public Result getUserInfo(@PathVariable("id") Integer id){
         
-        return Result.success(userService.getById(id));
+        return Result.success(userService.getUserInfoById(id));
     }
 }
