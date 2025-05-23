@@ -1,5 +1,6 @@
 package com.sosd.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sosd.Exception.BizException;
@@ -7,14 +8,19 @@ import com.sosd.constant.MessageConstant;
 import com.sosd.domain.DTO.BlogDTO;
 import com.sosd.domain.DTO.PageResult;
 import com.sosd.domain.POJO.Blog;
+import com.sosd.domain.POJO.ImageBlog;
 import com.sosd.domain.POJO.Tag;
 import com.sosd.domain.POJO.User;
 import com.sosd.domain.VO.BlogVO;
 import com.sosd.mapper.BlogMapper;
+import com.sosd.mapper.ImageBlogMapper;
 import com.sosd.mapper.TagMapper;
 import com.sosd.repository.BlogDao;
 import com.sosd.service.BlogService;
 import com.sosd.utils.JwtUtil;
+import io.minio.GetPresignedObjectUrlArgs;
+import io.minio.MinioClient;
+import io.minio.PutObjectArgs;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -29,10 +35,12 @@ import org.springframework.data.elasticsearch.core.query.highlight.Highlight;
 import org.springframework.data.elasticsearch.core.query.highlight.HighlightField;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -47,6 +55,10 @@ public class BlogServiceImpl implements BlogService {
     JwtUtil jwtUtil;
     @Autowired
     private BlogMapper blogMapper;
+    @Autowired
+    MinioClient minioClient;
+    @Autowired
+    ImageBlogMapper imageBlogMapper;
 
     @Override
     public PageResult getBlogsByTag(String tag, int page, int size) {
@@ -74,9 +86,9 @@ public class BlogServiceImpl implements BlogService {
             BeanUtils.copyProperties(blog,blogVO);
             String content=blog.getContent();
             if(content.length()<=50){
-                blogVO.setContent(content);
+                blogVO.setContentHead(content);
             }else{
-                blogVO.setContent(content.substring(0,50));
+                blogVO.setContentHead(content.substring(0,50));
             }
             list.add(blogVO);
         }
@@ -129,7 +141,7 @@ public class BlogServiceImpl implements BlogService {
     }
     @Transactional
     @Override
-    public void publish(BlogDTO blogDTO,String accessToken) {
+    public Long publish(BlogDTO blogDTO,String accessToken) {
         Blog blog=new Blog();
         BeanUtils.copyProperties(blogDTO,blog);
 
@@ -153,7 +165,6 @@ public class BlogServiceImpl implements BlogService {
         blog.setPageView(0L);
         blog.setRead(0L);
         blog.setComment(0L);
-
         try {
             blogMapper.insert(blog);
             blogDao.save(blog);
@@ -161,10 +172,57 @@ public class BlogServiceImpl implements BlogService {
             blogDao.delete(blog);
             throw new BizException(MessageConstant.Publish_Error);
         }
+        return blog.getId();
     }
 
     @Override
     public List<Tag> getTags() {
         return tagMapper.selectList(null);
+    }
+
+    @Override
+    public void setImage(List<MultipartFile> files,String accessToken,Long blogId) {
+        String userInfo = jwtUtil.getUserInfo(accessToken);
+        ObjectMapper objectMapper=new ObjectMapper();
+        User user;
+        try {
+            user = objectMapper.readValue(userInfo, User.class);
+        } catch (JsonProcessingException e) {
+            throw new BizException(MessageConstant.Set_Image_Error);
+        }
+        for(int i=0;i<files.size();i++){
+            try {
+                minioClient.putObject(PutObjectArgs.builder()
+                        .bucket(MessageConstant.Bucket_Name)
+                        .object(user.getId() + "_" + i)
+                        .build());
+                String url = minioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
+                        .bucket(MessageConstant.Bucket_Name)
+                        .object(user.getId() + "_" + i)
+                        .build());
+                ImageBlog imageBlog=ImageBlog.builder().blogId(blogId).order(i).url(url).build();
+                imageBlogMapper.insert(imageBlog);
+            } catch (Exception e) {
+                throw new BizException(MessageConstant.Set_Image_Error);
+            }
+        }
+    }
+
+    @Override
+    public List<String> getImage(Long blogId) {
+        LambdaQueryWrapper<ImageBlog> queryWrapper = new LambdaQueryWrapper<ImageBlog>();
+        queryWrapper.eq(ImageBlog::getBlogId, blogId);
+        List<ImageBlog> imageBlogs = imageBlogMapper.selectList(queryWrapper);
+        imageBlogs.sort(new Comparator<ImageBlog>() {
+            @Override
+            public int compare(ImageBlog o1, ImageBlog o2) {
+                return o1.getOrder() - o2.getOrder();
+            }
+        });
+        List<String> list=new ArrayList<>();
+        for(int i=0;i<imageBlogs.size();i++){
+            list.add(imageBlogs.get(i).getUrl());
+        }
+        return list;
     }
 }

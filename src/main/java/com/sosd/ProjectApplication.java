@@ -10,7 +10,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @version 1.1
  */
 @SpringBootApplication
-//TODO:周报-ljk
 @MapperScan("com.sosd.mapper")
 public class ProjectApplication {
 

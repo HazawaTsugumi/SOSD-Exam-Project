@@ -32,7 +32,7 @@ public class Blog {
      * 使用 Mybatis Plus 内置的雪花算法生成id
      */
     @Id
-    @TableId(value = "`id`",type = IdType.ASSIGN_ID)
+    @TableId(value = "`id`",type = IdType.AUTO)
     private Long id;
 
     /**
@@ -103,14 +103,14 @@ public class Blog {
     private String tag;
 
     @Field(type = FieldType.Keyword,index = false)
-    @TableField("user")
+    @TableField("`user`")
     private String user;
 
     @Field(type = FieldType.Long,index = false)
-    @TableField("read")
+    @TableField("`read`")
     private Long read;
 
     @Field(type = FieldType.Long,index = false)
-    @TableField("comment")
+    @TableField("`comment`")
     private Long comment;
 }

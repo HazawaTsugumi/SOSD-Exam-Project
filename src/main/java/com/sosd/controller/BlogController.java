@@ -8,6 +8,7 @@ import com.sosd.service.BlogService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -41,8 +42,8 @@ public class BlogController {
     @PostMapping("publish")
     //TODO:测记
     public Result publish(@RequestBody BlogDTO blogDTO,@RequestHeader("Access-Token") String accessToken) {
-        blogService.publish(blogDTO,accessToken);
-        return Result.success(null);
+        Long blogId=blogService.publish(blogDTO,accessToken);
+        return Result.success(blogId);
     }
     @GetMapping("getTags")
     public Result getTags() {
@@ -50,4 +51,14 @@ public class BlogController {
         return Result.success(list);
     }
 
+    @PostMapping("setImage")
+    public Result setImage(@RequestBody List<MultipartFile> files,@RequestHeader String accessToken,Long blogId) {
+        blogService.setImage(files,accessToken,blogId);
+        return Result.success(null);
+    }
+    @GetMapping("getImage")
+    public Result getImage(Long blogId) {
+        List<String> urls=blogService.getImage(blogId);
+        return Result.success(urls);
+    }
 }
