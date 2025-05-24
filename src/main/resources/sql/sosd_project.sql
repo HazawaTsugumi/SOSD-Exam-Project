@@ -11,7 +11,7 @@
  Target Server Version : 80200
  File Encoding         : 65001
 
- Date: 05/04/2025 15:27:17
+ Date: 24/05/2025 19:17:56
 */
 
 SET NAMES utf8mb4;
@@ -32,12 +32,11 @@ CREATE TABLE `blog`  (
   `collect` bigint NOT NULL COMMENT '文章的收藏量',
   `user_view` bigint NOT NULL COMMENT '文章的用户访问量（UV），一个用户只能加一次',
   `page_view` bigint NOT NULL COMMENT '文章的访问量(PV),一个用户可以加多次',
+  `tag` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '文章的标签',
+  `user` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '文章的作者名',
+  `comment` bigint NOT NULL COMMENT '文章的评论量',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of blog
--- ----------------------------
 
 -- ----------------------------
 -- Table structure for collect
@@ -50,10 +49,6 @@ CREATE TABLE `collect`  (
   `create_time` timestamp(0) NOT NULL COMMENT '收藏时间',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of collect
--- ----------------------------
 
 -- ----------------------------
 -- Table structure for comment
@@ -70,8 +65,14 @@ CREATE TABLE `comment`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Records of comment
+-- Table structure for image_blog
 -- ----------------------------
+DROP TABLE IF EXISTS `image_blog`;
+CREATE TABLE `image_blog`  (
+  `blog_id` bigint NOT NULL COMMENT '文章id',
+  `order` int NOT NULL COMMENT '图片的顺序',
+  `url` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '图片的链接'
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for like
@@ -83,10 +84,6 @@ CREATE TABLE `like`  (
   `user_id` bigint NOT NULL COMMENT '用户id',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of like
--- ----------------------------
 
 -- ----------------------------
 -- Table structure for reading_record
@@ -101,10 +98,6 @@ CREATE TABLE `reading_record`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Records of reading_record
--- ----------------------------
-
--- ----------------------------
 -- Table structure for role
 -- ----------------------------
 DROP TABLE IF EXISTS `role`;
@@ -115,10 +108,6 @@ CREATE TABLE `role`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Records of role
--- ----------------------------
-
--- ----------------------------
 -- Table structure for tag
 -- ----------------------------
 DROP TABLE IF EXISTS `tag`;
@@ -127,25 +116,6 @@ CREATE TABLE `tag`  (
   `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '标签内容',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of tag
--- ----------------------------
-
--- ----------------------------
--- Table structure for tag_blog
--- ----------------------------
-DROP TABLE IF EXISTS `tag_blog`;
-CREATE TABLE `tag_blog`  (
-  `id` bigint NOT NULL COMMENT '无意义',
-  `blog_id` bigint NOT NULL COMMENT '文章id',
-  `tag_id` bigint NOT NULL COMMENT '文章对应的标签的id',
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of tag_blog
--- ----------------------------
 
 -- ----------------------------
 -- Table structure for user
@@ -160,9 +130,5 @@ CREATE TABLE `user`  (
   `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '用户的名称',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of user
--- ----------------------------
 
 SET FOREIGN_KEY_CHECKS = 1;

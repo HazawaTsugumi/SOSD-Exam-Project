@@ -5,6 +5,23 @@ spring:
 
     #这里配置 ljkaaaa 将使用你的配置
     active: ygh
+my:
+
+  # JWT 的密钥
+  secret: Mashiro
+  # 管理员邮箱
+  admin-email: 1293978818@qq.com
+  # 白名单
+  whitelist:
+    - /mail/login
+    - /mail/register
+    - /user/register
+    - /user/refresh
+    - /mail/forget
+    - /user/forget
+    - /user/login/username
+    - /user/login/mail
+    - /user/info/*
 
 ---
 
@@ -38,8 +55,6 @@ spring:
 
   elasticsearch:
     uris: 192.168.37.134:9200
-    username: elastic
-    password: zutzD3x1+tRm+I8mLj+8
 
   data:
     redis:
@@ -48,21 +63,6 @@ spring:
       port: 6379
       password: 222316
       database: 0
-
-# 用于产生 JWT 的密钥
-my:
-  secret: Mashiro
-  admin-email: 1293978818@qq.com
-  whitelist:
-    - /mail/login
-    - /mail/register
-    - /user/register
-    - /user/refresh
-    - /mail/forget
-    - /user/forget
-    - /user/login/username
-    - /user/login/mail
-    - /user/info/*
 logging:
   level:
     '[com.sosd.filters]': INFO
@@ -106,11 +106,6 @@ spring:
       host: localhost
       port: 6379
       database: 0
-
-# 用于产生 JWT 的密钥
-my:
-  secret: Mashiro
-  admin-email: 1293978818@qq.com
 logging:
   level:
     '[com.sosd.filters]': INFO
