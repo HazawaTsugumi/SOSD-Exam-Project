@@ -78,7 +78,9 @@ public class JsonUsernamePasswordFilter extends UsernamePasswordAuthenticationFi
         setAuthenticationFailureHandler(
             (HttpServletRequest request,HttpServletResponse response,AuthenticationException exception) -> {
 
+                //纪录日志
                 log.info(exception.getMessage());
+
                 //构建结果类
                 Result result = Result.fail("用户名或密码错误");
 
