@@ -23,6 +23,10 @@ public class DaoAuthProviderConfig {
     @Lazy
     private PasswordEncoder passwordEncoder;
 
+    /**
+     * 注册DaoAuthenticationProvider认证提供者
+     * @return DaoAuthenticationProvider认证提供者实例
+     */
     @Bean
     public DaoAuthenticationProvider daoAuthenticationProvider(){
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
