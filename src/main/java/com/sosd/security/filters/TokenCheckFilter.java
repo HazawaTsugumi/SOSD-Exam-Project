@@ -71,7 +71,7 @@ public class TokenCheckFilter extends OncePerRequestFilter {
 
         //如果 Token 过期，输出错误信息给前端，让其调用刷新 token 的请求
         if(token == null || !jwtUtil.verify(token)){
-            Result result = Result.fail("token过期", 400);
+            Result result = Result.fail("token无效或缺失", 400);
             responsePrint.print(response, result);
             return;
         }
