@@ -43,7 +43,7 @@ public class ExceptionAdvice {
     @ExceptionHandler(Exception.class)
     public Result exceptionAdvice(Exception exception) {
         log.error(exception.getMessage());
-        exception.printStackTrace();
+        log.error("Stack Trace:", exception);
         try {
             mailUtil.sendMessage("服务器出现错误", exception.getMessage() + "\n" + "Stack Trace:" + exception.getStackTrace().toString(),properties.getAdminEmail());
         } catch(Exception e) {
