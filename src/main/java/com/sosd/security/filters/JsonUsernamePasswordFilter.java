@@ -2,8 +2,10 @@ package com.sosd.security.filters;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -41,6 +43,9 @@ public class JsonUsernamePasswordFilter extends UsernamePasswordAuthenticationFi
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
     /**
      * 设置过滤器的处理url，以及认证成功处理器和认证失败处理器
      * @param authenticationFailureHandler
@@ -68,6 +73,10 @@ public class JsonUsernamePasswordFilter extends UsernamePasswordAuthenticationFi
                 //将生成的 token 放入响应头中
                 response.setHeader("Access-Token", accessToken);
                 response.setHeader("Refresh-Token", refreshToken);
+
+                //将token存入redis中方便执行退出登录操作
+                redisTemplate.opsForValue().set("user:refreshToken:" + user.getId().toString(), refreshToken, TokenType.REFRESH.getTime(), TimeUnit.MILLISECONDS);
+                redisTemplate.opsForValue().set("user:accessToken:" + user.getId().toString(), accessToken, TokenType.ACCESS.getTime(), TimeUnit.MILLISECONDS);
 
                 //使用打印的工具输出结果到前端
                 responsePrint.print(response, result);

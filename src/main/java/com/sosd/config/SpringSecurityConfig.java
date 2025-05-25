@@ -67,6 +67,10 @@ public class SpringSecurityConfig {
                 login
                     .disable();
             })
+
+            .logout(logout -> {
+                logout.disable();  // 禁用 Spring Security 的默认登出功能
+            })
             
             // 不创建会话，因为我们使用了 Token 而不是 Session
             .sessionManagement(session -> {
