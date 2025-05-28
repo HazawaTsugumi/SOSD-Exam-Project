@@ -25,7 +25,7 @@ public class User {
      * 用户id
      * 使用 Mybatis Plus 内置的雪花算法生成id
      */
-    @TableId(type = IdType.ASSIGN_ID,value = "`id`")
+    @TableId(type = IdType.AUTO,value = "`id`")
     private Long id;
 
     /**

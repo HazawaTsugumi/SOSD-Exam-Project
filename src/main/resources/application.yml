@@ -2,9 +2,8 @@
 # 使用 Spring 的多环境配置
 spring:
   profiles:
-
     #这里配置 ljkaaaa 将使用你的配置
-    active: ygh
+    active: ljkaaaa
 my:
   # JWT 的密钥
   secret: Mashiro
@@ -21,6 +20,22 @@ my:
     - /user/login/username
     - /user/login/mail
     - /user/info/*
+
+
+
+
+    #      开发
+    - /blog/*
+  minio:
+    credentials:
+      account: minioadmin
+      password: minioadmin
+      endpoint: http://10.194.16.156:9000
+
+
+
+
+
 
 ---
 
@@ -78,7 +93,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/sosd-test?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
     username: root
-    password: 123456
+    password: 123A456s789d
   mail:
 
     # 配置邮件发送者的账号、密码等信息
@@ -96,7 +111,7 @@ spring:
       "[mail.smtp.starttls.enable]": true
       "[mail.smtp.starttls.required]": true
   elasticsearch:
-    uris: 127.0.0.1:9200
+    uris: 127.0.0.1:9201
 
 
   data:

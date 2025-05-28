@@ -1,0 +1,4 @@
+minio:
+  account: adminio
+  password: adminio
+  endpoint: http://10.194.16.156:9000

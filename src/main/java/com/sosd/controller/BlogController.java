@@ -8,7 +8,9 @@ import com.sosd.service.BlogService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -38,16 +40,22 @@ public class BlogController {
         PageResult pageResult=blogService.search(keyword,page,size);
         return Result.success(pageResult);
     }
-    @PostMapping("publish")
-    //TODO:测记
+    @PostMapping("/publish")
     public Result publish(@RequestBody BlogDTO blogDTO,@RequestHeader("Access-Token") String accessToken) {
+        log.info("发布文章:{}",blogDTO.getTitle());
         blogService.publish(blogDTO,accessToken);
         return Result.success(null);
     }
-    @GetMapping("getTags")
+    @GetMapping("/getTags")
     public Result getTags() {
         List<Tag> list =blogService.getTags();
         return Result.success(list);
+    }
+    @PostMapping("/postImage")
+    public Result postImage(MultipartFile file) throws IOException {
+        log.info("上传图片文件");
+        String url=blogService.postImage(file);
+        return Result.success(url);
     }
 
 }

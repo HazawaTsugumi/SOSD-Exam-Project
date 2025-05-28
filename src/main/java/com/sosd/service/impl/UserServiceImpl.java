@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.sosd.Exception.BizException;
-import com.sosd.constant.MessageConstance;
+import com.sosd.constant.MessageConstant;
 import com.sosd.domain.POJO.User;
 import com.sosd.mapper.UserMapper;
 import com.sosd.service.UserService;
@@ -37,14 +37,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements Use
 
         //如果是，说明账号重复，抛出异常
         if(this.getOne(lambdaQueryWrapper) != null){
-            throw new BizException(MessageConstance.USERNAME_IS_USED);
+            throw new BizException(MessageConstant.USERNAME_IS_USED);
         }
 
         //判断邮箱是否合法且不存在，如果不合法或已经被使用，抛出异常
         String email = user.getEmail();
         validEmail(email);
         if(selectByEmail(email) != null){
-            throw new BizException(MessageConstance.EMAIL_IS_USED);
+            throw new BizException(MessageConstant.EMAIL_IS_USED);
         }
 
         validateCode(email, code, "register");
@@ -65,7 +65,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements Use
         validEmail(email);
         User selectedUser = selectByEmail(email);
         if(selectedUser == null){
-            throw new BizException(MessageConstance.EMAIL_NOT_FOUND);
+            throw new BizException(MessageConstant.EMAIL_NOT_FOUND);
         }
 
         //判断邮件验证码是否正确
@@ -87,7 +87,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements Use
         String cache = redisTemplate.opsForValue().get("mail:" + prefix + ":" + email);
         //如果验证码不正确，抛出异常
         if(cache == null || !cache.equals(code)){
-            throw new BizException(MessageConstance.WRONG_VERIFY_CODE);
+            throw new BizException(MessageConstant.WRONG_VERIFY_CODE);
         }
 
         //如果正确，删除redis的内容
@@ -113,7 +113,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements Use
     private void validEmail(String mail){
         String regex = "^[A-Za-z0-9\\u4e00-\\u9fa5]+@[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)+$";
         if(mail == null || !mail.matches(regex)){
-            throw new BizException(MessageConstance.WRONG_EMAIL_FORMAT);
+            throw new BizException(MessageConstant.WRONG_EMAIL_FORMAT);
         }
     }
 
@@ -121,7 +121,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements Use
     public User getUserInfoById(Integer id) {
         User user = this.getById(id);
         if(user == null){
-            throw new BizException(MessageConstance.USER_NOT_FOUND);
+            throw new BizException(MessageConstant.USER_NOT_FOUND);
         }
         return user;
     }
