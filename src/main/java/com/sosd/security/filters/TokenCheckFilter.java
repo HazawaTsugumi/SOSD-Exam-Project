@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,12 +23,14 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 用于请求时的 Token 校验
  * @author 应国浩
  */
 @Component
+@Slf4j
 public class TokenCheckFilter extends OncePerRequestFilter {
 
     @Autowired
@@ -43,6 +46,9 @@ public class TokenCheckFilter extends OncePerRequestFilter {
 
     @Autowired
     private MyProperties properties;
+
+    @Autowired
+    private StringRedisTemplate redisTemplate;
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
@@ -63,26 +69,35 @@ public class TokenCheckFilter extends OncePerRequestFilter {
         //先获取 Token
         String token = request.getHeader("Access-Token");
 
-        //如果 Token 没过期，直接放行
-        if(token != null && jwtUtil.verify(token)){
-
-            //获取用户信息
-            String userInfo = jwtUtil.getUserInfo(token);
-            User user = objectMapper.readValue(userInfo, User.class);
-            String username = user.getUsername();
-
-            //设置安全上下文，放行后续请求
-            UsernamePasswordAuthenticationToken authToken =
-                new UsernamePasswordAuthenticationToken(username, null, new ArrayList<>());
-            SecurityContextHolder.getContext().setAuthentication(authToken);
-
-            doFilter(request, response, filterChain);
+        //如果 Token 过期，输出错误信息给前端，让其调用刷新 token 的请求
+        if(token == null || !jwtUtil.verify(token)){
+            Result result = Result.fail("token无效或缺失", 400);
+            responsePrint.print(response, result);
             return;
         }
 
-        //如果 Token 过期，输出错误信息给前端，让其调用刷新 token 的请求
-        Result result = Result.fail("token过期", 400);
-        responsePrint.print(response, result);
+        //获取用户信息
+        String userInfo = jwtUtil.getUserInfo(token);
+        User user = objectMapper.readValue(userInfo, User.class);
+
+        //获取该用户在redis上的缓存
+        String cache = redisTemplate.opsForValue().get("user:accessToken:" + user.getId().toString());
+
+        //如果缓存未命中或不相等，说明用户已经退出登录或被其他人登录顶号
+        if(cache == null || !cache.equals(token)){
+            Result result = Result.fail("token过期", 400);
+            responsePrint.print(response, result);
+            return;
+        }
+
+        String username = user.getUsername();
+
+        //设置安全上下文，放行后续请求
+        UsernamePasswordAuthenticationToken authToken =
+            new UsernamePasswordAuthenticationToken(username, null, new ArrayList<>());
+        SecurityContextHolder.getContext().setAuthentication(authToken);
+
+        doFilter(request, response, filterChain);
     }
     
 }

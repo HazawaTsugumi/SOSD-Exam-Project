@@ -1,6 +1,9 @@
 package com.sosd.controller;
 
+import java.util.concurrent.TimeUnit;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -41,6 +44,9 @@ public class UserController {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private StringRedisTemplate redisTemplate;
     
     /**
      * 处理用户注册的控制类
@@ -57,26 +63,42 @@ public class UserController {
         return Result.success(null);
     }
 
-    /**
-     * 根据 Refresh-Token 刷新 Access-Token 
-     * @param refreshToken
-     * @param response
-     * @return
-     */
-    @PostMapping("/refresh")
-    public Result refresh(@RequestHeader("Refresh-Token") String refreshToken,HttpServletResponse response){
+        /**
+         * 根据 Refresh-Token 刷新 Access-Token 
+         * @param refreshToken
+         * @param response
+         * @return
+         */
+         @PostMapping("/refresh")
+         public Result refresh(@RequestHeader("Refresh-Token") String refreshToken,HttpServletResponse response) throws JsonMappingException, JsonProcessingException{
 
-        if(jwtUtil.verify(refreshToken)){
+            //如果token过期，返回错误信息
+            if(!jwtUtil.verify(refreshToken)){
+                return Result.fail("登录认证已失效，请登录", -1);
+            }
+
+            //获取用户信息
             String userInfo = jwtUtil.getUserInfo(refreshToken);
+            User user = objectMapper.readValue(userInfo, User.class);
+
+            //获取redis的缓存，如果缓存未命中或不相等，则视为退出登录，返回错误信息
+            String cache = redisTemplate.opsForValue().get("user:refreshToken:" + user.getId().toString());
+            if(cache == null || !cache.equals(refreshToken)){
+                return Result.fail("登录认证已失效，请登录", -1);
+            }
+            
+            //生成新的token
             String newAccessToken = jwtUtil.generate(userInfo, TokenType.ACCESS);
             String newRefreshToken = jwtUtil.generate(userInfo, TokenType.REFRESH);
             response.setHeader("Access-Token", newAccessToken);
             response.setHeader("Refresh-Token", newRefreshToken);
+
+            //将token存入redis中方便执行退出登录操作
+            redisTemplate.opsForValue().set("user:refreshToken:" + user.getId().toString(), newRefreshToken, TokenType.REFRESH.getTime(), TimeUnit.MILLISECONDS);
+            redisTemplate.opsForValue().set("user:accessToken:" + user.getId().toString(), newAccessToken, TokenType.ACCESS.getTime(), TimeUnit.MILLISECONDS);
+            
             return Result.success(null);
         }
-
-        return Result.fail("登录认证已失效，请重试", -1);
-    }
 
     /**
      * 用于重置密码操作
@@ -118,5 +140,15 @@ public class UserController {
     public Result getUserInfo(@PathVariable("id") Integer id){
         
         return Result.success(userService.getUserInfoById(id));
+    }
+
+    @PostMapping("/logout")
+    public Result logout(@RequestHeader("Access-Token") String token) throws JsonMappingException, JsonProcessingException{
+        //获取用户信息的JSON字符串，并反序列化为user对象
+        String userInfo = jwtUtil.getUserInfo(token);
+        User user = objectMapper.readValue(userInfo, User.class);
+        redisTemplate.delete("user:accessToken:" + user.getId().toString());
+        redisTemplate.delete("user:refreshToken:" + user.getId().toString());
+        return Result.success(null);
     }
 }
