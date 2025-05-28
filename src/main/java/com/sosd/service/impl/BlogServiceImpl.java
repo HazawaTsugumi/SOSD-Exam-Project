@@ -2,8 +2,9 @@ package com.sosd.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hankcs.hanlp.HanLP;
 import com.sosd.Exception.BizException;
-import com.sosd.constant.MessageConstance;
+import com.sosd.constant.MessageConstant;
 import com.sosd.domain.DTO.BlogDTO;
 import com.sosd.domain.DTO.PageResult;
 import com.sosd.domain.POJO.Blog;
@@ -15,6 +16,11 @@ import com.sosd.mapper.TagMapper;
 import com.sosd.repository.BlogDao;
 import com.sosd.service.BlogService;
 import com.sosd.utils.JwtUtil;
+import org.commonmark.node.AbstractVisitor;
+import org.commonmark.node.Node;
+import org.commonmark.node.Paragraph;
+import org.commonmark.parser.Parser;
+import org.commonmark.renderer.text.TextContentRenderer;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -37,6 +43,8 @@ import java.util.List;
 
 @Service
 public class BlogServiceImpl implements BlogService {
+    public static final ObjectMapper objectMapper = new ObjectMapper();
+    public static final Parser parser = Parser.builder().build();
     @Autowired
     ElasticsearchTemplate elasticsearchTemplate;
     @Autowired
@@ -127,15 +135,17 @@ public class BlogServiceImpl implements BlogService {
         pageResult.setRows(list);
         return pageResult;
     }
-    @Transactional
+
     @Override
     public void publish(BlogDTO blogDTO,String accessToken) {
         Blog blog=new Blog();
         BeanUtils.copyProperties(blogDTO,blog);
+        String title=blog.getTitle();
+        if(title==null|| title.isEmpty()||title.isBlank()){
+            throw new BizException(MessageConstant.TITLE_IS_NULL);
+        }
 
         String userInfo = jwtUtil.getUserInfo(accessToken);
-        //TODO:测,记
-        ObjectMapper objectMapper=new ObjectMapper();
         User user;
         try {
             user = objectMapper.readValue(userInfo, User.class);
@@ -145,6 +155,7 @@ public class BlogServiceImpl implements BlogService {
         blog.setUserId(user.getId());
         blog.setUser(user.getName());
 
+
         blog.setLike(0L);
         blog.setCreateTime(new Timestamp(System.currentTimeMillis()));
         blog.setUpdateTime(new Timestamp(System.currentTimeMillis()));
@@ -153,18 +164,45 @@ public class BlogServiceImpl implements BlogService {
         blog.setPageView(0L);
         blog.setRead(0L);
         blog.setComment(0L);
+        String content=blog.getContent();
+
+        if(content==null||content.isBlank()|| content.isEmpty()){
+            throw new BizException(MessageConstant.CONTENT_IS_NULL);
+        }
+        //将文本按段落拆分，每段获取一句摘要，然后拼接起来
+        List<String> paragraphs = divideParagraphs(content);
+        StringBuilder builder=new StringBuilder();
+        for(int i=0;i<paragraphs.size();i++){
+            HanLP.extractSummary(paragraphs.get(i),1);
+            builder.append(paragraphs.get(i));
+        }
+        blog.setAbstractContent(builder.toString());
 
         try {
-            blogMapper.insert(blog);
+            int id = blogMapper.insert(blog);
+            blog.setId((long) id);
             blogDao.save(blog);
         } catch (Exception e) {
-            blogDao.delete(blog);
-            throw new BizException(MessageConstance.PUBLISH_ERROR);
+            blogDao.deleteById(blog.getId());
+            throw new BizException(MessageConstant.PUBLISH_ERROR);
         }
     }
 
     @Override
     public List<Tag> getTags() {
         return tagMapper.selectList(null);
+    }
+    public List<String> divideParagraphs(String content){
+        List<String> paragraphs=new ArrayList<>();
+        Node document=parser.parse(content);
+        document.accept(new AbstractVisitor() {
+            @Override
+            public void visit(Paragraph paragraph) {
+                TextContentRenderer renderer=TextContentRenderer.builder().build();
+                String renderText = renderer.render(paragraph);
+                paragraphs.add(renderText);
+            }
+        });
+        return paragraphs;
     }
 }

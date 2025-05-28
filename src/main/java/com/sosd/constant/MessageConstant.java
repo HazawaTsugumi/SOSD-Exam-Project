@@ -1,6 +1,6 @@
 package com.sosd.constant;
 
-public class MessageConstance {
+public class MessageConstant {
 
     public static final String EMAIL_NOT_FOUND = "邮箱不存在";
 
@@ -15,4 +15,8 @@ public class MessageConstance {
     public static final String USER_NOT_FOUND = "该用户不存在";
 
     public static final String PUBLISH_ERROR="文章上传失败";
+    public static final String TAG_IS_IS_NULL="标签不能为空";
+    public static final String CONTENT_IS_NULL="文章不能为空";
+    public static final String TITLE_IS_NULL="标题不能为空";
+
 }

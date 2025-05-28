@@ -25,7 +25,7 @@ public class Tag {
      * 标签id
      * 使用 Mybatis Plus 内置的雪花算法自动生成
      */
-    @TableId(value = "`id`",type = IdType.ASSIGN_ID)
+    @TableId(value = "`id`",type = IdType.AUTO)
     private Long id;
 
     /**

@@ -39,8 +39,8 @@ public class BlogController {
         return Result.success(pageResult);
     }
     @PostMapping("publish")
-    //TODO:测记
     public Result publish(@RequestBody BlogDTO blogDTO,@RequestHeader("Access-Token") String accessToken) {
+        log.info("发布文章:{}",blogDTO.getTitle());
         blogService.publish(blogDTO,accessToken);
         return Result.success(null);
     }

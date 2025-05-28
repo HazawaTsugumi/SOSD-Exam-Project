@@ -2,6 +2,7 @@ package com.sosd.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.sosd.domain.POJO.Tag;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
@@ -11,5 +12,6 @@ import org.apache.ibatis.annotations.Mapper;
  */
 @Mapper
 public interface TagMapper extends BaseMapper<Tag>{
-    
+    @Insert("insert into tag (name) values(#{name})")
+    public void insertTag(String name);
 }

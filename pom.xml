@@ -88,6 +88,18 @@
 			<artifactId>spring-boot-starter-web</artifactId>
 			<version>3.4.4</version>
 		</dependency>
+<!--		HanLp-->
+		<dependency>
+			<groupId>com.hankcs</groupId>
+			<artifactId>hanlp</artifactId>
+			<version>portable-1.8.4</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.commonmark</groupId>
+			<artifactId>commonmark</artifactId>
+			<version>0.23.0</version>
+		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
