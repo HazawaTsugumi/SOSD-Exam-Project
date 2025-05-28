@@ -32,6 +32,7 @@ public class ExceptionAdvice {
      */
     @ExceptionHandler(BizException.class)
     public Result bizExceptionAdvice(BizException exception) {
+        System.out.println(exception.getMessage());
         return Result.fail(exception.getMessage());
     }
 

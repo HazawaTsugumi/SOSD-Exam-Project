@@ -94,6 +94,18 @@
 			<artifactId>hanlp</artifactId>
 			<version>portable-1.8.4</version>
 		</dependency>
+<!--		hutool工具类包-->
+		<dependency>
+			<groupId>cn.hutool</groupId>
+			<artifactId>hutool-all</artifactId>
+			<version>5.8.38</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.minio</groupId>
+			<artifactId>minio</artifactId>
+			<version>8.5.17</version>
+		</dependency>
 
 		<dependency>
 			<groupId>org.commonmark</groupId>
