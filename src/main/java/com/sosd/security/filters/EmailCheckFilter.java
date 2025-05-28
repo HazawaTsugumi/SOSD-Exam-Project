@@ -2,8 +2,10 @@ package com.sosd.security.filters;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -44,6 +46,9 @@ public class EmailCheckFilter extends AbstractAuthenticationProcessingFilter{
     @Autowired
     private ResponsePrint responsePrint;
 
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
     /**
      * 设置过滤器的处理url，以及认证成功处理器和认证失败处理器
      * @param manager
@@ -67,6 +72,10 @@ public class EmailCheckFilter extends AbstractAuthenticationProcessingFilter{
                 String userInfo = objectMapper.writeValueAsString(user);
                 String refreshToken = jwtUtil.generate(userInfo, TokenType.REFRESH);
                 String accessToken = jwtUtil.generate(userInfo, TokenType.ACCESS);
+
+                //将token存入redis中方便执行退出登录操作
+                redisTemplate.opsForValue().set("user:refreshToken:" + user.getId().toString(), refreshToken, TokenType.REFRESH.getTime(), TimeUnit.MILLISECONDS);
+                redisTemplate.opsForValue().set("user:accessToken:" + user.getId().toString(), accessToken, TokenType.ACCESS.getTime(), TimeUnit.MILLISECONDS);
 
                 //将 token 存入响应头，并打印响应
                 response.setHeader("Access-Token", accessToken);
