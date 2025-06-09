@@ -18,7 +18,6 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * Spring Security 内置的处理用户权限信息的 service 层接口的实现类
- * @author 应国浩
  */
 @Service
 @Slf4j

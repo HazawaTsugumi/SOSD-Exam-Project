@@ -15,7 +15,6 @@ import com.sosd.config.MyProperties;
 
 /**
  * 用于生成 JWT，判断 JWT 是否过期以及解析 JWT 的工具类
- * @author 应国浩
  */
 @Component
 public class JwtUtil {

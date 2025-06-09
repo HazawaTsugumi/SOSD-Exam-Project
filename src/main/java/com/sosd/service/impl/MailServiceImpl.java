@@ -20,7 +20,6 @@ import jakarta.mail.MessagingException;
 
 /**
  * 实现邮件验证码接口的实现类
- * @author 应国浩
  */
 @Service
 public class MailServiceImpl implements MailService{

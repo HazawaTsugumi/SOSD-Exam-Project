@@ -4,7 +4,6 @@ import lombok.Getter;
 
 /**
  * 最终返回给前端的对象
- * @author 应国浩
  */
 @Getter
 public class Result {
