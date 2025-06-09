@@ -8,7 +8,6 @@ import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerIntercept
 
 /**
  * 配置 Mybatis Plus 的配置类
- * @author 应国浩
  */
 @Configuration
 public class MpConfig {

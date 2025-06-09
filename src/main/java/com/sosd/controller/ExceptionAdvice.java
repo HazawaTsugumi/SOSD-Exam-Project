@@ -1,11 +1,13 @@
 package com.sosd.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.sosd.Exception.BizException;
 import com.sosd.config.MyProperties;
+import com.sosd.constant.MessageConstant;
 import com.sosd.domain.DTO.Result;
 import com.sosd.utils.MailUtil;
 
@@ -13,7 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * 异常的处理类，当收到异常后，将执行这个代码
- * @author 应国浩
  */
 @Slf4j
 @RestControllerAdvice
@@ -36,6 +37,11 @@ public class ExceptionAdvice {
         return Result.fail(exception.getMessage());
     }
 
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public Result authorizationDeniedExceptionAdvice(AuthorizationDeniedException exception) {
+        return Result.fail(MessageConstant.AUTH_FAIL,403);
+    }
+
     /**
      * 如果返回其他错误，则打印日志并邮件通知管理员
      * @param exception
@@ -52,6 +58,6 @@ public class ExceptionAdvice {
             log.error(exception.getMessage());
             log.error("Stack Trace:" + exception.getStackTrace().toString());
         }
-        return Result.fail("出现错误，请联系管理员");
+        return Result.fail(MessageConstant.INTERNAL_ERROR);
     }
 }

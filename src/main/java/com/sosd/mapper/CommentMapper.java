@@ -8,7 +8,6 @@ import com.sosd.domain.POJO.Comment;
 /**
  * 评论表的映射类
  * 使用 Mybatis Plus 不用写SQL简化开发
- * @author 应国浩
  */
 @Mapper
 public interface CommentMapper extends BaseMapper<Comment>{

@@ -18,6 +18,10 @@ import com.sosd.domain.DTO.Result;
 import com.sosd.domain.POJO.User;
 import com.sosd.utils.JwtUtil;
 import com.sosd.utils.ResponsePrint;
+import com.sosd.domain.DO.MyUserDetail;
+import com.sosd.domain.POJO.Role;
+import com.sosd.service.RoleService;
+import com.sosd.service.UserService;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -27,7 +31,6 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * 用于请求时的 Token 校验
- * @author 应国浩
  */
 @Component
 @Slf4j
@@ -49,6 +52,12 @@ public class TokenCheckFilter extends OncePerRequestFilter {
 
     @Autowired
     private StringRedisTemplate redisTemplate;
+
+    @Autowired
+    private RoleService roleService;
+
+    @Autowired
+    private UserService userService;
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
@@ -90,12 +99,24 @@ public class TokenCheckFilter extends OncePerRequestFilter {
             return;
         }
 
-        String username = user.getUsername();
+        user = userService.getById(user.getId());
 
-        //设置安全上下文，放行后续请求
+        //获取用户角色信息
+        Role role = roleService.getById(user.getRole());
+        MyUserDetail userDetail = new MyUserDetail(user, role.getName());
+
+        //设置安全上下文，包含用户角色信息
         UsernamePasswordAuthenticationToken authToken =
-            new UsernamePasswordAuthenticationToken(username, null, new ArrayList<>());
+            new UsernamePasswordAuthenticationToken(userDetail, null, userDetail.getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(authToken);
+
+        //记录访问者信息
+        log.info("用户访问: username={}, role={}, roleId={}, authorities={}, uri={}", 
+            user.getUsername(), 
+            role.getName(),
+            role.getId(),
+            userDetail.getAuthorities(),
+            requestURI);
 
         doFilter(request, response, filterChain);
     }

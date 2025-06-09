@@ -6,7 +6,6 @@ import jakarta.mail.MessagingException;
 
 /**
  * 用于发送邮件验证码的服务类
- * @author 应国浩
  */
 public interface MailService {
     

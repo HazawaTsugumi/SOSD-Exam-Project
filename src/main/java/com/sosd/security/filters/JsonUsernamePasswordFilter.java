@@ -28,7 +28,6 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * 用于将json字符串转换为可供 Spring Security 识别的过滤器
- * @author 应国浩
  */
 @Component
 @Slf4j

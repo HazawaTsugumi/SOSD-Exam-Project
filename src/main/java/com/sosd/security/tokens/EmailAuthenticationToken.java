@@ -7,7 +7,6 @@ import org.springframework.security.core.GrantedAuthority;
 
 /**
  * 定义新的 AuthenticationToken， 用来封装邮箱密码信息
- * @author 应国浩
  */
 public class EmailAuthenticationToken extends AbstractAuthenticationToken{
 
