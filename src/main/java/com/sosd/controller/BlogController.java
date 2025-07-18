@@ -78,7 +78,7 @@ public class BlogController {
             throw new BizException(MessageConstant.UNKNOWN_BLOG);
         }
 
-        String sanitizedContent = sanitizeAndValidateContent(blog.getContent());
+        String sanitizedContent = blog.getContent();
 
         return Flux.create(flux -> {
             chatModel.chat("根据文章内容总结一下这篇文章\n" + sanitizedContent, new StreamingChatResponseHandler() {
