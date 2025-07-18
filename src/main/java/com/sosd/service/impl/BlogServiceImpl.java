@@ -2,6 +2,8 @@ package com.sosd.service.impl;
 
 import cn.hutool.core.lang.Snowflake;
 import cn.hutool.core.util.IdUtil;
+
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hankcs.hanlp.HanLP;
@@ -52,7 +54,7 @@ import java.util.*;
 
 @Service
 @Slf4j
-public class BlogServiceImpl implements BlogService {
+public class BlogServiceImpl extends ServiceImpl<BlogMapper,Blog> implements BlogService {
     public static final ObjectMapper objectMapper = new ObjectMapper();
     public static final Parser parser = Parser.builder().build();
     @Autowired
