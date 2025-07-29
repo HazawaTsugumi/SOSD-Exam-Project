@@ -12,7 +12,6 @@ import lombok.NoArgsConstructor;
 /**
  * 标签实体类
  * 使用 Lombok 组件自动生成getter和setter，无参构造函数，有参构造函数
- * @author 应国浩
  */
 
 @TableName("`tag`")

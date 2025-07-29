@@ -14,7 +14,6 @@ import lombok.Getter;
 
 /**
  * 用于 Spring Security 处理登录的实体类
- * @author 应国浩
  */
 public class MyUserDetail implements UserDetails{
 
@@ -38,9 +37,8 @@ public class MyUserDetail implements UserDetails{
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-
         List<GrantedAuthority> list = new ArrayList<>();
-        list.add(new SimpleGrantedAuthority(roleName));
+        list.add(new SimpleGrantedAuthority("ROLE_" + roleName));
         return list;
     }
 

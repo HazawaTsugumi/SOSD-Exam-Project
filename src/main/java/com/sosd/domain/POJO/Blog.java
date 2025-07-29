@@ -18,7 +18,6 @@ import org.springframework.data.elasticsearch.annotations.FieldType;
 /**
  * 文章实体类
  * 使用 Lombok 组件自动生成getter和setter，无参构造函数，有参构造函数
- * @author 应国浩
  */
 @TableName("`blog`")
 @Data
@@ -100,16 +99,16 @@ public class Blog {
     private Long pageView;
 
     @Field(type = FieldType.Keyword)
-    @TableField("tag")
+    @TableField("`tag`")
     private String tag;
 
     //用户名称
     @Field(type = FieldType.Keyword,index = false,store = false)
-    @TableField("user")
+    @TableField("`user`")
     private String user;
 
     @Field(type = FieldType.Long,index = false,store = false)
-    @TableField("read")
+    @TableField("`read`")
     private Long read;
 
     @Field(type = FieldType.Long,index = false,store = false)

@@ -6,7 +6,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
  * Spring Boot启动类
- * @author 应国浩
  * @version 1.1
  */
 @SpringBootApplication

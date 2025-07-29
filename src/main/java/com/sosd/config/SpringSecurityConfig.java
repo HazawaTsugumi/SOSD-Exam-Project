@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -16,14 +17,15 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import com.sosd.security.filters.EmailCheckFilter;
 import com.sosd.security.filters.JsonUsernamePasswordFilter;
 import com.sosd.security.filters.TokenCheckFilter;
+import com.sosd.utils.ResponsePrint;
 
 import lombok.Getter;
 
 /**
  * 安全框架 Spring Security 的配置类
- * @author 应国浩
  */
 @Configuration
+@EnableMethodSecurity
 @Getter
 public class SpringSecurityConfig {
 
@@ -32,6 +34,9 @@ public class SpringSecurityConfig {
 
     @Autowired
     private MyProperties properties;
+
+    @Autowired
+    private ResponsePrint responsePrint;
     
     /**
      * 配置 Spring Security 的过滤器和拦截器以及放行接口

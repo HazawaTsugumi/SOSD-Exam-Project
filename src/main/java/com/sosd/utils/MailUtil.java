@@ -13,7 +13,6 @@ import jakarta.mail.internet.MimeMessage;
 
 /**
  * 进行邮件发送的工具类
- * @author 应国浩
  */
 @Component
 public class MailUtil {

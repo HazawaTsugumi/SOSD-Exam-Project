@@ -6,9 +6,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.sosd.Exception.BizException;
 import com.sosd.constant.MessageConstant;
+import com.sosd.domain.DTO.PageResult;
 import com.sosd.domain.POJO.User;
 import com.sosd.mapper.UserMapper;
 import com.sosd.service.UserService;
@@ -16,7 +19,6 @@ import com.sosd.service.UserService;
 /**
  * 用户服务接口的实现类
  * 使用 Mybatis Plus 自动实现接口
- * @author 应国浩
  */
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements UserService{
@@ -124,5 +126,44 @@ public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements Use
             throw new BizException(MessageConstant.USER_NOT_FOUND);
         }
         return user;
+    }
+
+    @Override
+    public void updateNickname(Long id, String nickName) {
+        User user = this.getById(id);
+        user.setName(nickName);
+        this.updateById(user);
+    }
+
+    @Override
+    public PageResult getAllUser(Integer page, Integer size) {
+        Page<User> pageParam = new Page<>(page, size);
+        IPage<User> pageResult = this.page(pageParam);
+        PageResult result = new PageResult();
+        result.setTotal(pageResult.getTotal());
+        result.setRows(pageResult.getRecords());
+        return result;
+    }
+
+    @Override
+    public void authUser(User user) {
+        Long role = user.getRole();
+
+        if(role > 3 || role <= 1){
+            throw new BizException(MessageConstant.WRONG_AUTH);
+        }
+
+        User user2 = this.getById(user.getId());
+        if(user2 == null) {
+            throw new BizException(MessageConstant.USER_NOT_FOUND);
+        }
+
+        if(user2.getRole() == 1){
+            throw new BizException(MessageConstant.WRONG_AUTH);
+        }
+
+        user2.setRole(role);
+
+        this.updateById(user2);
     }
 }

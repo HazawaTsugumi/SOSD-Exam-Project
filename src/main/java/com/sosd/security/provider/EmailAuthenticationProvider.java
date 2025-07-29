@@ -21,7 +21,6 @@ import com.sosd.service.UserService;
 
 /**
  * 自定义通过邮箱验证码认证过程
- * @author 应国浩
  */
 @Component
 public class EmailAuthenticationProvider implements AuthenticationProvider{

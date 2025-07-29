@@ -62,4 +62,12 @@ public class MessageConstant {
     public static final String SOSD_IMAGE="sosd-image";
 
     public static final String FAILED_GET="文件获取失败";
+
+    public static final String AUTH_FAIL = "您没有权限访问此资源";
+
+    public static final String WRONG_AUTH = "不合法的权限";
+
+    public static final String INTERNAL_ERROR = "服务器出现错误，请联系管理员";
+
+    public static final String UNKNOWN_BLOG = "文章不存在";
 }

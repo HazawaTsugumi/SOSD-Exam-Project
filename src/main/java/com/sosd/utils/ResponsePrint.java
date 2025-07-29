@@ -13,7 +13,6 @@ import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * 用于使用 Servlet 的 Response 打印信息
- * @author 应国浩
  */
 @Component
 public class ResponsePrint {

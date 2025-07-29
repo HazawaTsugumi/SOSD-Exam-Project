@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 /**
  * 用于处理收发邮件的控制类
- * @author 应国浩
  */
 @RestController
 @RequestMapping("/mail")

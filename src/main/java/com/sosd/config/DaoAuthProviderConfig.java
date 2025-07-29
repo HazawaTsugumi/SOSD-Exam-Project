@@ -10,7 +10,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 /**
  * 注册provider
- * @author 应国浩
  */
 @Configuration
 public class DaoAuthProviderConfig {

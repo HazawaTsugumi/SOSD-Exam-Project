@@ -29,7 +29,6 @@ import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * 用于邮箱验证码登录的过滤器
- * @author 应国浩
  */
 @Component
 public class EmailCheckFilter extends AbstractAuthenticationProcessingFilter{
