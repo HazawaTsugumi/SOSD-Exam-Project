@@ -70,4 +70,8 @@ public class MessageConstant {
     public static final String INTERNAL_ERROR = "服务器出现错误，请联系管理员";
 
     public static final String UNKNOWN_BLOG = "文章不存在";
+
+    public static final String DELETE_AUTH_FAIL = "您没有权限删除此资源";
+
+    public static final String UNKNOWN_COMMENT = "评论不存在";
 }
