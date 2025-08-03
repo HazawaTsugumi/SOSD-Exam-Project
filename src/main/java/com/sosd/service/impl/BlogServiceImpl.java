@@ -303,4 +303,17 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper,Blog> implements Blo
         }
         return byteRight;
     }
+    @Override
+    public Blog getBlogById(Long id) {
+        Blog blog = this.getById(id);
+
+        if(blog == null){
+            throw new BizException(MessageConstant.UNKNOWN_BLOG);
+        }
+
+        blog.setRead(blog.getRead() + 1);
+        this.updateById(blog);
+
+        return blog;
+    }
 }

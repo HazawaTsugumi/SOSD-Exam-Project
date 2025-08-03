@@ -22,4 +22,6 @@ public interface BlogService extends IService<Blog>{
     List<Tag> getTags();
 
     String postImage(MultipartFile file) throws IOException;
+
+    public Blog getBlogById(Long id);
 }

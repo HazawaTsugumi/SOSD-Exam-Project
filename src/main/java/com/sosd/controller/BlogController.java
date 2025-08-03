@@ -101,4 +101,10 @@ public class BlogController {
             });
         });
     }
+
+    @GetMapping("/detail/{id}")
+    public Result getBlogById(@PathVariable("id") Long id){
+        Blog blog = blogService.getBlogById(id);
+        return Result.success(blog);
+    }
 }

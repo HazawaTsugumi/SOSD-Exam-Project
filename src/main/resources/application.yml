@@ -23,6 +23,9 @@ my:
 
     - /blog/*
     - /blog/ai/*
+    - /blog/detail/*
+
+    - /comment/get
 langchain4j:
   community:
     dashscope:
