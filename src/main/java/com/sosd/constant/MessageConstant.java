@@ -74,4 +74,6 @@ public class MessageConstant {
     public static final String DELETE_AUTH_FAIL = "您没有权限删除此资源";
 
     public static final String UNKNOWN_COMMENT = "评论不存在";
+
+    public static final String DATE_ERROR = "结束日期不能早于开始日期";
 }

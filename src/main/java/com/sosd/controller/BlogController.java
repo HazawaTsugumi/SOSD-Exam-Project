@@ -1,5 +1,6 @@
 package com.sosd.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sosd.Exception.BizException;
 import com.sosd.constant.MessageConstant;
 import com.sosd.domain.DTO.BlogDTO;
@@ -7,7 +8,9 @@ import com.sosd.domain.DTO.PageResult;
 import com.sosd.domain.DTO.Result;
 import com.sosd.domain.POJO.Blog;
 import com.sosd.domain.POJO.Tag;
+import com.sosd.domain.POJO.User;
 import com.sosd.service.BlogService;
+import com.sosd.utils.JwtUtil;
 
 import dev.langchain4j.community.model.dashscope.QwenStreamingChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -102,9 +105,26 @@ public class BlogController {
         });
     }
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @GetMapping("/detail/{id}")
-    public Result getBlogById(@PathVariable("id") Long id){
-        Blog blog = blogService.getBlogById(id);
+    public Result getBlogById(
+            @PathVariable("id") Long id,
+            @RequestHeader(value = "Access-Token", required = false) String token) throws IOException{
+
+        Blog blog;
+        if(token == null){
+            blog = blogService.getBlogById(id,null,true);
+        }else{
+            String userInfo = jwtUtil.getUserInfo(token);
+            User user = objectMapper.readValue(userInfo, User.class);
+            blog = blogService.getBlogById(id, user,true);
+        }
+
         return Result.success(blog);
     }
 }

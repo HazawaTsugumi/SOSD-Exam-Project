@@ -1,5 +1,7 @@
 package com.sosd.controller;
 
+import java.io.IOException;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,8 +12,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sosd.domain.DTO.Result;
 import com.sosd.domain.POJO.Comment;
@@ -38,7 +38,7 @@ public class CommentController {
     }
 
     @PostMapping("/add")
-    public Result addComment(@RequestBody Comment comment,@RequestHeader("Access-Token") String token) throws JsonMappingException, JsonProcessingException{
+    public Result addComment(@RequestBody Comment comment,@RequestHeader("Access-Token") String token) throws IOException{
         String userInfo = jwtUtil.getUserInfo(token);
         User user = objectMapper.readValue(userInfo, User.class);
         commentService.addComment(comment, user);
@@ -46,7 +46,7 @@ public class CommentController {
     }
 
     @DeleteMapping("/delete")
-    public Result deleteComment(@RequestParam("id") Long id,@RequestHeader("Access-Token") String token) throws JsonMappingException, JsonProcessingException{
+    public Result deleteComment(@RequestParam("id") Long id,@RequestHeader("Access-Token") String token) throws IOException{
         String userInfo = jwtUtil.getUserInfo(token);
         User user = objectMapper.readValue(userInfo, User.class);
         commentService.deleteComment(id, user);

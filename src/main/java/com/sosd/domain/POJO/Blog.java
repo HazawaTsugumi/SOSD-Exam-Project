@@ -119,4 +119,10 @@ public class Blog {
     @Field(type = FieldType.Text)
     @TableField("`abstract_content`")
     private String abstractContent;
+
+    @TableField(exist = false)
+    private Boolean isLiked;
+
+    @TableField(exist = false)
+    private Boolean isCollected;
 }
