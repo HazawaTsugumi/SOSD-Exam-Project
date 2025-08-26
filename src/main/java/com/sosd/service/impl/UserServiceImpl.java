@@ -1,5 +1,7 @@
 package com.sosd.service.impl;
 
+import java.io.IOException;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -9,11 +11,14 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sosd.Exception.BizException;
 import com.sosd.constant.MessageConstant;
+import com.sosd.domain.DTO.BasicData;
 import com.sosd.domain.DTO.PageResult;
 import com.sosd.domain.POJO.User;
 import com.sosd.mapper.UserMapper;
+import com.sosd.service.BasicDataService;
 import com.sosd.service.UserService;
 
 /**
@@ -29,8 +34,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements Use
     @Autowired
     private StringRedisTemplate redisTemplate;
 
+    @Autowired
+    private BasicDataService basicDataService;
+
     @Override
-    public void register(User user, String code) {
+    public void register(User user, String code) throws IOException {
         
         //查询数据库表，判断username是否存在
         String username = user.getUsername();
@@ -57,6 +65,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements Use
 
         //添加该用户到数据库表中，完成注册
         this.save(user);
+
+        BasicData basicData = basicDataService.getBasicData();
+        basicData.setUserCount(basicData.getUserCount() + 1);
+        basicDataService.setBasicData(basicData);
     }
 
     @Override

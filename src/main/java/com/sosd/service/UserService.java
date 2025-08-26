@@ -1,5 +1,7 @@
 package com.sosd.service;
 
+import java.io.IOException;
+
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.sosd.domain.DTO.PageResult;
 import com.sosd.domain.POJO.User;
@@ -14,7 +16,7 @@ public interface UserService extends IService<User>{
      * 处理用户登录操作
      * @param user
      */
-    public void register(User user,String code);
+    public void register(User user,String code) throws IOException;
 
     /**
      * 处理重置密码的操作
