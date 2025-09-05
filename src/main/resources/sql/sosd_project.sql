@@ -11,7 +11,7 @@
  Target Server Version : 80200
  File Encoding         : 65001
 
- Date: 24/05/2025 19:17:56
+ Date: 05/09/2025 22:53:23
 */
 
 SET NAMES utf8mb4;
@@ -30,11 +30,11 @@ CREATE TABLE `blog`  (
   `create_time` timestamp(0) NOT NULL COMMENT '文章的创建时间',
   `update_time` timestamp(0) NOT NULL COMMENT '文章的更新时间',
   `collect` bigint NOT NULL COMMENT '文章的收藏量',
-  `user_view` bigint NOT NULL COMMENT '文章的用户访问量（UV），一个用户只能加一次',
-  `page_view` bigint NOT NULL COMMENT '文章的访问量(PV),一个用户可以加多次',
   `tag` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '文章的标签',
   `user` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '文章的作者名',
   `comment` bigint NOT NULL COMMENT '文章的评论量',
+  `abstract_content` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '文章摘要',
+  `read` bigint NOT NULL,
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
@@ -104,6 +104,18 @@ DROP TABLE IF EXISTS `role`;
 CREATE TABLE `role`  (
   `id` bigint NOT NULL COMMENT '角色id',
   `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '角色名称',
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Table structure for statistics
+-- ----------------------------
+DROP TABLE IF EXISTS `statistics`;
+CREATE TABLE `statistics`  (
+  `id` bigint NOT NULL,
+  `date` date NOT NULL,
+  `pv` bigint NOT NULL,
+  `uv` bigint NOT NULL,
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 

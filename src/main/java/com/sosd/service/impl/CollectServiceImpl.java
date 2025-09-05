@@ -91,6 +91,6 @@ public class CollectServiceImpl extends ServiceImpl<CollectMapper,Collect> imple
             ids.add(collect.getBlogId());
         }
 
-        return new PageResult(current.getTotal(), blogService.listByIds(ids,user));
+        return new PageResult(current.getTotal(),1L * page, blogService.listByIds(ids,user));
     }
 }
