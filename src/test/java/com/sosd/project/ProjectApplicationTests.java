@@ -1,5 +1,7 @@
 package com.sosd.project;
 
+import cn.hutool.db.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hankcs.hanlp.HanLP;
 import org.apache.http.HttpHost;
 import org.commonmark.node.AbstractVisitor;
@@ -35,16 +37,16 @@ class ProjectApplicationTests {
 
 	@Test
 	void getAllIndex() throws IOException {
-		GetIndexRequest request = new GetIndexRequest("*");
-		RestHighLevelClient client=new RestHighLevelClient(RestClient.builder(new HttpHost("localhost",9200,"http")));
-		GetIndexResponse getIndexResponse = client.indices().get(request, RequestOptions.DEFAULT);
-		System.out.println(Arrays.toString(getIndexResponse.getIndices()));
-		client.close();
+//		GetIndexRequest request = new GetIndexRequest("*");
+//		RestHighLevelClient client=new RestHighLevelClient(RestClient.builder(new HttpHost("localhost",9200,"http")));
+//		GetIndexResponse getIndexResponse = client.indices().get(request, RequestOptions.DEFAULT);
+//		System.out.println(Arrays.toString(getIndexResponse.getIndices()));
+//		client.close();
 	}
 	@Test
 	void testAbstract(){
 
-		List<String> strings = HanLP.extractSummary("不知道你是否注意过，即便是在微博、都有流行的当下，网上还是有很多博客和博主，而且流量和粉丝都相当可观，有些博主还能通过接广告、吸引会员等方式来得到收入。你知道博客为什么这么流行且经久不衰吗？别急，下面就跟大家科普下一些关于博客的知识。", 1);
+		List<String> strings = HanLP.extractSummary("SQLark是一款面向信创应用开发者的数据库开发和管理工具，可用于快速查询、创建和管理不同类型的数据库系统。SQLark具有如下特效：支持多种主流数据库：达梦数据库、Oracle、MySQL、PostgreSQL等。丰富的数据库对象支持：模式、表、视图、物化视图、函数、存储过程、序列、触发器等。SQL智能编辑器：基于SQL语法解析实现代码补全，提供精准的SQL编码提示。数据生成：快速生成千万级/亿级仿真表数据，支持用正则表达式设置规则。数据迁移：提供全生命周期的数据迁移解决方案，迁移过程包括迁移评估、迁移实施和迁移校验三大环节。ER图：能根据数据库/模式/表逆向ER图，帮助开发者快速理清数据库表之间的关系。小百灵AI：能提供代码生成、代码解释、报错分析、SQL优化等功能，帮助开发者高效完成数据库开发、数据分析及日常运维工作。", 10);
 		System.out.println(strings);
 	}
 	@Test
@@ -62,5 +64,6 @@ class ProjectApplicationTests {
 			}
 		});
 		System.out.println(paragraphs);
+
 	}
 }

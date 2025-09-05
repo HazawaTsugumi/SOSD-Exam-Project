@@ -3,6 +3,7 @@ package com.sosd.service.impl;
 import cn.hutool.core.lang.Snowflake;
 import cn.hutool.core.util.IdUtil;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,12 +11,13 @@ import com.hankcs.hanlp.HanLP;
 import com.sosd.Exception.BizException;
 import com.sosd.constant.MessageConstant;
 import com.sosd.domain.DTO.BlogDTO;
+import com.sosd.domain.DTO.PageDTO;
 import com.sosd.domain.DTO.PageResult;
-import com.sosd.domain.POJO.Blog;
-import com.sosd.domain.POJO.Tag;
-import com.sosd.domain.POJO.User;
+import com.sosd.domain.POJO.*;
 import com.sosd.domain.VO.BlogVO;
+import com.sosd.domain.query.BlogsQuery;
 import com.sosd.mapper.BlogMapper;
+import com.sosd.mapper.TagBlogMapper;
 import com.sosd.mapper.TagMapper;
 import com.sosd.repository.BlogDao;
 import com.sosd.service.BlogService;
@@ -25,6 +27,7 @@ import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.http.Method;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.ibatis.executor.BatchResult;
 import org.commonmark.node.AbstractVisitor;
 import org.commonmark.node.Node;
 import org.commonmark.node.Paragraph;
@@ -35,6 +38,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.elasticsearch.client.elc.ElasticsearchTemplate;
+import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.query.Criteria;
 import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
@@ -51,6 +55,7 @@ import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -69,6 +74,8 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper,Blog> implements Blo
     private BlogMapper blogMapper;
     @Autowired
     private MinioClient minioClient;
+    @Autowired
+    private TagBlogMapper tagBlogMapper;
 
     @Override
     public PageResult getBlogsByTag(String tag, int page, int size) {
@@ -80,14 +87,14 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper,Blog> implements Blo
         PageRequest pageRequest=PageRequest.of(page,size,sort);
         return getBlogs(size,criteria,pageRequest);
     }
-    public PageResult getBlogs(int size,Criteria criteria,PageRequest pageRequest) {
+    public PageResult getBlogs(int size, Criteria criteria, PageRequest pageRequest) {
         Query query=new CriteriaQuery(criteria);
         //pageRequest没有设置参数也会有默认参数,即也会分页
         if(pageRequest!=null){
             query.setPageable(pageRequest);
         }
         SearchHits<Blog> response = elasticsearchTemplate.search(query, Blog.class);
-        PageResult pageResult=new PageResult();
+        PageResult pageResult =new PageResult();
         pageResult.setTotal(response.getTotalHits());
         List<BlogVO> list=new ArrayList<>();
         for(int i=0;i<size;i++){
@@ -95,57 +102,100 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper,Blog> implements Blo
             BlogVO blogVO=new BlogVO();
             BeanUtils.copyProperties(blog,blogVO);
             String content=blog.getContent();
-            if(content.length()<=50){
-                blogVO.setContent(content);
-            }else{
-                blogVO.setContent(content.substring(0,50));
-            }
+//            if(content.length()<=50){
+//                blogVO.setContent(content);
+//            }else{
+//                blogVO.setContent(content.substring(0,50));
+//            }
             list.add(blogVO);
         }
         pageResult.setRows(list);
         return pageResult;
     }
+
     //TODO:优化对热门文章的判断
     @Override
-    public PageResult getHotBlogs(String tag,int page, int size) {
-        Criteria criteria = new Criteria();
-        if(tag!=null){
-            criteria=criteria.and("tag").fuzzy(tag);
+    public PageDTO<BlogVO> getHotBlogs(BlogsQuery blogsQuery) {
+        //TODO:多条件排序
+        List<Tag> tags = blogsQuery.getTags();
+        List<Long> tagIds = Collections.emptyList();
+        if (tags != null && !tags.isEmpty()) {
+            tagIds = tags.stream().map(tag -> {
+                return tag.getId();
+            }).toList();
         }
-        LocalDateTime now = LocalDateTime.now();
-        criteria = criteria.and("createTime").between(now.minusDays(7), now);
-        Sort sort = Sort.by(Sort.Direction.DESC, "like");
-        PageRequest pageRequest=PageRequest.of(page,size,sort);
-        return getBlogs(size,criteria,pageRequest);
+        List<Blog> blogs = blogMapper.selectPageByTag(tagIds);
+        if (blogs == null || blogs.isEmpty()) {
+            return PageDTO.empty();
+        }
+        Long total = (long) blogs.size();
+        PageDTO<BlogVO> pageDTO = new PageDTO<>();
+        pageDTO.setTotal(total);
+        Long pages=total % blogsQuery.getPageSize() ==0?total / blogsQuery.getPageSize():total / blogsQuery.getPageSize()+1;
+        pageDTO.setPages(pages);
+        List<Blog> hits = new ArrayList<>();
+        if(total>blogsQuery.getPageSize()){
+            for (int i = 0; i < blogsQuery.getPageSize(); i++) {
+                hits.add(blogs.get(i));
+            }
+        }else{
+            hits=blogs;
+        }
+
+        pageDTO.setList(hits.stream().map(blog -> {
+            BlogVO blogVO = new BlogVO();
+            BeanUtils.copyProperties(blog, blogVO);
+            return blogVO;
+        }).toList());
+
+        return pageDTO;
     }
 
-    //TODO:给查询结果评分，匹配度更高的优先返回
-    //TODO:性能优化
+    //TODO:匹配度
     @Override
-    public PageResult search(String keyword,int page,int size) {
-        Criteria criteria = new Criteria("title").fuzzy(keyword).or("content").fuzzy(keyword);
+    public PageResult search(String keyword, int page, int size) {
+        String title="title";
+        String abstractContent="abstractContent";
+        Criteria criteria = new Criteria(title).fuzzy(keyword).or(abstractContent).fuzzy(keyword);
         Query query = new CriteriaQuery(criteria);
-        //TODO:测,记
+        //TODO
         List<HighlightField> highlightFields=new ArrayList<>();
-        highlightFields.add(new HighlightField("content"));
-        highlightFields.add(new HighlightField("title"));
+        highlightFields.add(new HighlightField(abstractContent));
+        highlightFields.add(new HighlightField(title));
+        //TODO:type
         HighlightQuery highlightQuery=new HighlightQuery(new Highlight(highlightFields),null);
         query.setHighlightQuery(highlightQuery);
 
         PageRequest pageRequest=PageRequest.of(page,size);
         query.setPageable(pageRequest);
 
-        SearchHits<Blog> response = elasticsearchTemplate.search(query, Blog.class);
-        PageResult pageResult=new PageResult();
+        SearchHits<BlogForES> response = elasticsearchTemplate.search(query, BlogForES.class);
         List<BlogVO> list=new ArrayList<>();
-        for(int i=0;i<size;i++){
-            Blog content = response.getSearchHit(i).getContent();
-            BlogVO blogVO=new BlogVO();
-            BeanUtils.copyProperties(content,blogVO);
-            //TODO:headContent高亮显示关键字
-            list.add(blogVO);
+        long total = response.getTotalHits();
+        if(total>0){
+            if(total<size){
+                size= (int) total;
+            }
+            for(int i=0;i<size;i++){
+                SearchHit<BlogForES> searchHit = response.getSearchHit(i);
+                BlogForES content = searchHit.getContent();
+                //es高亮处理关键字后会把处理后的字段放到HighlightFields
+                Map<String, List<String>> highlightFieldMap = searchHit.getHighlightFields();
+                List<String> titles = highlightFieldMap.get("title");
+                if(titles!=null && !titles.isEmpty()){
+                    content.setTitle(titles.get(0));
+                }
+                List<String> abstractContents = highlightFieldMap.get(abstractContent);
+                if(abstractContents!=null && !abstractContents.isEmpty()){
+                    content.setAbstractContent(abstractContents.get(0));
+                }
+                BlogVO blogVO=new BlogVO();
+                BeanUtils.copyProperties(content,blogVO);
+                list.add(blogVO);
+            }
         }
-        pageResult.setTotal(response.getTotalHits());
+        PageResult pageResult =new PageResult();
+        pageResult.setTotal(total);
         pageResult.setRows(list);
         return pageResult;
     }
@@ -187,20 +237,61 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper,Blog> implements Blo
         List<String> paragraphs = divideParagraphs(content);
         StringBuilder builder=new StringBuilder();
         for(int i=0;i<paragraphs.size();i++){
-            HanLP.extractSummary(paragraphs.get(i),1);
-            builder.append(paragraphs.get(i));
+            //TODO
+            List<String> abstractParagraph = HanLP.extractSummary(paragraphs.get(i), 1);
+            builder.append(abstractParagraph.get(0));
         }
         blog.setAbstractContent(builder.toString());
+        //获取自创标签
+        List<Tag> tags = blogDTO.getTags();
+        List<Tag> newTags = tags.stream().filter(tag -> {
+            return tag.getId() == null;
+        }).toList();
+        //TODO:检验标签是否合法
+
 
         try {
-            int id = blogMapper.insert(blog);
-            blog.setId((long) id);
-            blogDao.save(blog);
+            String blogTag="";
+            for(int i=0;i<tags.size();i++){
+                blogTag+=tags.get(i).getName();
+                if(i!=tags.size()-1){
+                    blogTag+=",";
+                }
+            }
+            blog.setTag(blogTag);
+            blogMapper.insert(blog);
+            //插入自创标签
+            tagMapper.insert(newTags);
+            //设置标签与文章映射
+            tagBlogMapper.insert(blogDTO.getTags().stream().map(tag->{
+                TagBlog tagBlog=new TagBlog();
+                tagBlog.setTagId(tag.getId());
+                tagBlog.setBlogId(blog.getId());
+                return tagBlog;
+            }).toList());
+            BlogForES blogForES = BlogForES.of(blog);
+            blogDao.save(blogForES);
         } catch (Exception e) {
+            log.error(e.getMessage());
             blogDao.deleteById(blog.getId());
             throw new BizException(MessageConstant.PUBLISH_ERROR);
         }
     }
+    //TODO:记
+    public List<String> divideParagraphs(String content){
+        List<String> paragraphs=new ArrayList<>();
+        Node document=parser.parse(content);
+        document.accept(new AbstractVisitor() {
+            @Override
+            public void visit(Paragraph paragraph) {
+                TextContentRenderer renderer=TextContentRenderer.builder().build();
+                String renderText = renderer.render(paragraph);
+                paragraphs.add(renderText);
+            }
+        });
+        return paragraphs;
+    }
+
 
     @Override
     public List<Tag> getTags() {
@@ -208,6 +299,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper,Blog> implements Blo
     }
 
     @Override
+    //TODO:记
     public String postImage(MultipartFile file) throws IOException {
         if(file==null||file.isEmpty()){
             throw new BizException(MessageConstant.FILE_IS_NULL);
@@ -221,6 +313,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper,Blog> implements Blo
 
 
         byte[] bytes = file.getBytes();
+        //魔数最长为16位16进制数,而1字节为2位16进制,因此截取前8字节
         bytes = Arrays.copyOfRange(bytes, 0, MessageConstant.MAX_HEX_LENGTH / 2);
         String hexString = HexFormat.of().formatHex(bytes);
 
@@ -238,9 +331,9 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper,Blog> implements Blo
         FileInputStream inputStream=new FileInputStream(image);
         try {
             minioClient.putObject(PutObjectArgs.builder()
-                            .bucket(MessageConstant.SOSD_IMAGE)
-                            .object(id +"."+suffix)
-                            .stream(inputStream,image.length(),-1)
+                    .bucket(MessageConstant.SOSD_IMAGE)
+                    .object(id + "." + suffix)
+                    .stream(inputStream, image.length(), -1)
                     .build());
         } catch (Exception e) {
             e.printStackTrace();
@@ -267,19 +360,6 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper,Blog> implements Blo
         return url;
     }
 
-    public List<String> divideParagraphs(String content){
-        List<String> paragraphs=new ArrayList<>();
-        Node document=parser.parse(content);
-        document.accept(new AbstractVisitor() {
-            @Override
-            public void visit(Paragraph paragraph) {
-                TextContentRenderer renderer=TextContentRenderer.builder().build();
-                String renderText = renderer.render(paragraph);
-                paragraphs.add(renderText);
-            }
-        });
-        return paragraphs;
-    }
 
     public boolean checkFileSortRight(String suffix,String maxHexString){
         boolean suffixRight=false;

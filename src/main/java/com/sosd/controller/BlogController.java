@@ -3,10 +3,13 @@ package com.sosd.controller;
 import com.sosd.Exception.BizException;
 import com.sosd.constant.MessageConstant;
 import com.sosd.domain.DTO.BlogDTO;
+import com.sosd.domain.DTO.PageDTO;
 import com.sosd.domain.DTO.PageResult;
 import com.sosd.domain.DTO.Result;
 import com.sosd.domain.POJO.Blog;
 import com.sosd.domain.POJO.Tag;
+import com.sosd.domain.VO.BlogVO;
+import com.sosd.domain.query.BlogsQuery;
 import com.sosd.service.BlogService;
 
 import dev.langchain4j.community.model.dashscope.QwenStreamingChatModel;
@@ -33,22 +36,24 @@ public class BlogController {
     //根据标签分页查询相关文章,根据创建时间推送,tag为null就不根据标签查
     @GetMapping("/getBlogsByTag")
     public Result getBlogsByTag(String tag,int page,int size) {
-        PageResult pageResult=blogService.getBlogsByTag(tag,page,size);
+        PageResult pageResult =blogService.getBlogsByTag(tag,page,size);
         return Result.success(pageResult);
     }
 
     //热门文章推荐,分页查询,标签
     @GetMapping("/getHotBlogsByTagOrNot")
-    public Result getHotBlogs(String tag,int page,int size) {
-        PageResult pageResult=blogService.getHotBlogs(tag,page,size);
-        return Result.success(pageResult);
+    public Result getHotBlogs(@RequestBody BlogsQuery blogsQuery) {
+        PageDTO<BlogVO> pageDTO=blogService.getHotBlogs(blogsQuery);
+        return Result.success(pageDTO);
     }
 
     @GetMapping("/search")
     public Result search(String keyword,int page,int size) {
-        PageResult pageResult=blogService.search(keyword,page,size);
+        PageResult pageResult =blogService.search(keyword,page,size);
         return Result.success(pageResult);
     }
+
+    //TODO:es把时间戳转为时间用的时区有误
     @PostMapping("/publish")
     public Result publish(@RequestBody BlogDTO blogDTO,@RequestHeader("Access-Token") String accessToken) {
         log.info("发布文章:{}",blogDTO.getTitle());
@@ -101,4 +106,6 @@ public class BlogController {
             });
         });
     }
+
+    
 }

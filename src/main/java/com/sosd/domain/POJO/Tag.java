@@ -24,7 +24,7 @@ public class Tag {
      * 标签id
      * 使用 Mybatis Plus 内置的雪花算法自动生成
      */
-    @TableId(value = "`id`",type = IdType.AUTO)
+    @TableId(value = "`id`",type = IdType.ASSIGN_ID)
     private Long id;
 
     /**
@@ -32,4 +32,28 @@ public class Tag {
      */
     @TableField("`name`")
     private String name;
+
+    /*
+    * 0为禁用
+    * 1为启用
+    *
+    * */
+
+    @TableField("status")
+    private byte status;
+
+    public Tag(String name) {
+        this.name = name;
+    }
+
+    public Tag(String name, byte status) {
+        this.name = name;
+        this.status = status;
+    }
+
+    public Tag(Long id, byte status) {
+        this.id = id;
+        this.status = status;
+    }
+
 }

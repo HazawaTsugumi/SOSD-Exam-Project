@@ -6,6 +6,7 @@ import java.util.List;
 
 @Data
 public class PageResult {
-    private long total;
+    private Long total;
+    private Long pages;
     private List<?> rows;
 }
