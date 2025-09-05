@@ -2,7 +2,7 @@
 # 使用 Spring 的多环境配置
 spring:
   profiles:
-    active: ygh
+    active: ljkaaaa
 my:
   # JWT 的密钥
   secret: Mashiro
@@ -23,9 +23,17 @@ my:
 
     - /blog/*
     - /blog/ai/*
+
+
+#-------------------------------
+    - /tag/*
+    - /tag
+    - /tag/all/*
+
     - /blog/detail/*
 
     - /comment/get
+
 langchain4j:
   community:
     dashscope:
@@ -33,7 +41,6 @@ langchain4j:
         api-key: sk-69b83a61a47e48269fc1efa16eb631d7
         model-name: qwq-32b-preview
 ---
-
 spring:
   config:
     activate:
@@ -85,6 +92,7 @@ logging:
 
 ---
 
+
 spring:
   config:
     activate:
@@ -112,13 +120,12 @@ spring:
       "[mail.smtp.starttls.enable]": true
       "[mail.smtp.starttls.required]": true
   elasticsearch:
-    uris: 127.0.0.1:9201
-
+    uris: 47.96.106.71:9200
 
   data:
     redis:
       # redis 的配置信息，包括地址、端口、密码等
-      host: localhost
+      host: 47.96.106.71
       port: 6379
       database: 0
 logging:
@@ -127,8 +134,10 @@ logging:
 my:
   minio:
       credentials:
-        account: minioadmin
-        password: minioadmin
-        endpoint: http://10.194.16.156:9000
+        account: sosdprod
+        password: sosdprod
+        endpoint: http://47.96.106.71:9000
+server:
+  port: 8081
 ---
 

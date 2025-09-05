@@ -6,6 +6,9 @@ import org.apache.ibatis.annotations.Mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.sosd.domain.POJO.Blog;
 import org.apache.ibatis.annotations.Options;
+import org.apache.ibatis.annotations.Select;
+
+import java.util.List;
 
 /**
  * 文章表的映射类
@@ -17,4 +20,8 @@ public interface BlogMapper extends BaseMapper<Blog>{
     @Insert("insert into blog (id,title,user_id,content,`like`,create_time,update_time,collect,user_view,page_view,tag,user,`read`,comment,abstract_content)" +
             "values (#{id},#{title},#{userId},#{content},#{like},#{createTime},#{updateTime},#{collect},#{userView},#{pageView},#{tag},#{user},#{read},#{comment},#{abstractContent})")
     public Long insert();
+
+
+    List<Blog> selectPageByTag(List<Long> tagIds);
+
 }

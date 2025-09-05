@@ -10,6 +10,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class PageResult {
-    private long total;
+    private Long total;
+    private Long pages;
     private List<?> rows;
 }

@@ -36,6 +36,9 @@ public class MessageConstant {
 
     public static final String FAILED_DELETE="文件删除失败";
 
+    public static final Byte ENABLE=1;
+    public static final Byte DISABLE=0;
+
     public static final HashMap<String,String> FILE_HEX_MAP=new HashMap<>();
 
     static{
