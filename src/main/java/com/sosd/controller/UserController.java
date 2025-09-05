@@ -1,5 +1,6 @@
 package com.sosd.controller;
 
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,7 +57,7 @@ public class UserController {
      * @return
      */
     @PostMapping("/register")
-    public Result register(@RequestBody UserDTO userDTO){
+    public Result register(@RequestBody UserDTO userDTO) throws IOException{
 
         //将 DTO 解构为 POJO 方便 Service 层处理业务
         User user = new User(null, userDTO.getUsername(), userDTO.getPassword(), userDTO.getEmail(), null, userDTO.getName());

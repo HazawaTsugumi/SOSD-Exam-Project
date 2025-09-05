@@ -1,6 +1,9 @@
 package com.sosd.domain.POJO;
 
+import java.sql.Timestamp;
+
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
@@ -24,4 +27,13 @@ public class ReadingRecord {
      */
     @TableId(value = "`id`",type = IdType.ASSIGN_ID)
     private Long id;
+
+    @TableField("user_id")
+    private Long userId;
+
+    @TableField("blog_id")
+    private Long blogId;
+
+    @TableField("reading_time")
+    private Timestamp readingTime;
 }

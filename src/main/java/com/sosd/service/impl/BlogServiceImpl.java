@@ -3,24 +3,51 @@ package com.sosd.service.impl;
 import cn.hutool.core.lang.Snowflake;
 import cn.hutool.core.util.IdUtil;
 
+
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Cache;
 import com.hankcs.hanlp.HanLP;
 import com.sosd.Exception.BizException;
 import com.sosd.constant.MessageConstant;
+import com.sosd.domain.DTO.BasicData;
 import com.sosd.domain.DTO.BlogDTO;
+
 import com.sosd.domain.DTO.PageDTO;
 import com.sosd.domain.DTO.PageResult;
 import com.sosd.domain.POJO.*;
+
+import com.sosd.domain.DTO.InteractionStatus;
+import com.sosd.domain.DTO.PageResult;
+import com.sosd.domain.POJO.Blog;
+import com.sosd.domain.POJO.Collect;
+import com.sosd.domain.POJO.Like;
+import com.sosd.domain.POJO.ReadingRecord;
+import com.sosd.domain.POJO.Tag;
+import com.sosd.domain.POJO.User;
+
 import com.sosd.domain.VO.BlogVO;
 import com.sosd.domain.query.BlogsQuery;
 import com.sosd.mapper.BlogMapper;
+
 import com.sosd.mapper.TagBlogMapper;
+
+import com.sosd.mapper.InteractionStatusMapper;
+
 import com.sosd.mapper.TagMapper;
 import com.sosd.repository.BlogDao;
+import com.sosd.service.BasicDataService;
 import com.sosd.service.BlogService;
+import com.sosd.service.CollectService;
+import com.sosd.service.LikeService;
+import com.sosd.service.ReadingRecordService;
+import com.sosd.service.StatisticsService;
 import com.sosd.utils.JwtUtil;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
@@ -35,6 +62,8 @@ import org.commonmark.parser.Parser;
 import org.commonmark.renderer.text.TextContentRenderer;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.elasticsearch.client.elc.ElasticsearchTemplate;
@@ -76,6 +105,12 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper,Blog> implements Blo
     private MinioClient minioClient;
     @Autowired
     private TagBlogMapper tagBlogMapper;
+
+    @Autowired
+    private BasicDataService basicDataService;
+
+    @Autowired
+    private Cache<String,Blog> blogCache;
 
     @Override
     public PageResult getBlogsByTag(String tag, int page, int size) {
@@ -276,6 +311,18 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper,Blog> implements Blo
             blogDao.deleteById(blog.getId());
             throw new BizException(MessageConstant.PUBLISH_ERROR);
         }
+
+        //管理端设置文章个数+1
+        try{
+            BasicData data = basicDataService.getBasicData();
+            data.setBlogCount(data.getBlogCount() + 1L);
+            basicDataService.setBasicData(data);
+        }catch(IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        //添加文章时将文章数据加入缓存中
+        blogCache.put(blog.getId().toString(), blog);
     }
     //TODO:记
     public List<String> divideParagraphs(String content){
@@ -382,5 +429,173 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper,Blog> implements Blo
             }
         }
         return byteRight;
+    }
+
+    @Autowired
+    @Lazy
+    private LikeService likeService;
+
+    @Autowired
+    @Lazy
+    private CollectService collectService;
+
+    @Autowired
+    @Lazy
+    private ReadingRecordService readingRecordService;
+
+    @Autowired
+    private StatisticsService statisticsService;
+
+    @Autowired
+    private InteractionStatusMapper interactionStatusMapper;
+
+    @Autowired
+    private AsyncTaskExecutor taskExecutor;
+
+    @Override
+    public Blog getBlogById(Long id,User user,boolean isDetail) {
+        Blog base = this.getById(id);
+
+        if(base == null){
+            throw new BizException(MessageConstant.UNKNOWN_BLOG);
+        }
+
+        Blog blog = new Blog();
+        BeanUtils.copyProperties(base, blog);
+
+        if(user == null){
+            blog.setIsLiked(false);
+            blog.setIsCollected(false);
+        }else{
+
+            InteractionStatus status = interactionStatusMapper.getStatus(user.getId(), id);
+            blog.setIsCollected(status.isCollected());
+            blog.setIsLiked(status.isLiked());
+
+            if(isDetail){
+
+                taskExecutor.execute(() -> {
+                    addReadingRecord(id, user.getId());
+                    this.updateById(base);
+                });
+
+                blog.setRead(blog.getRead() + 1);
+
+                taskExecutor.execute(() -> {
+                    base.setRead(blog.getRead());
+                    this.updateById(base);
+                });
+            }
+        }
+
+        taskExecutor.execute(() -> {
+            statisticsService.addStatistics(user);
+        });
+
+        return blog;
+    }
+
+    private void addReadingRecord(Long blogId,Long userId){
+        LambdaQueryWrapper<ReadingRecord> readingWrapper = new LambdaQueryWrapper<>();
+        readingWrapper.eq(ReadingRecord::getBlogId, blogId).eq(ReadingRecord::getUserId, userId);
+
+        if(readingRecordService.exists(readingWrapper)){
+            ReadingRecord readingRecord = readingRecordService.getOne(readingWrapper);
+            readingRecord.setReadingTime(new Timestamp(System.currentTimeMillis()));
+            readingRecordService.updateById(readingRecord);
+        }else{
+            readingRecordService.save(new ReadingRecord(null, userId, blogId, new Timestamp(System.currentTimeMillis())));
+        }
+    }
+
+    public Blog getById(Long id) {
+
+        Blog cache = blogCache.getIfPresent(id.toString());
+        if(cache != null) {
+            return cache;
+        }
+
+        Blog db = super.getById(id);
+        if(db != null){
+            blogCache.put(id.toString(), db);
+        }
+        return db;
+    }
+
+    public boolean updateById(Blog blog){
+        blogCache.put(blog.getId().toString(), blog);
+        return super.updateById(blog);
+    }
+
+    public void incrCollect(Long blogId, long delta) {
+
+        this.update(
+            null,
+            new UpdateWrapper<Blog>()
+                .setSql("collect = collect + " + delta)
+                .eq("id", blogId)
+        );
+    
+        blogCache.asMap().computeIfPresent(blogId.toString(), (k, v) -> {
+            v.setCollect(v.getCollect() + (int) delta);
+            return v;
+        });
+    }
+
+    public void incrLike(Long blogId, long delta) {
+
+        this.update(
+            null,
+            new UpdateWrapper<Blog>()
+                .setSql("`like` = `like` + " + delta)
+                .eq("id", blogId)
+        );
+    
+        blogCache.asMap().computeIfPresent(blogId.toString(), (k, v) -> {
+            v.setLike(v.getLike() + (int) delta);
+            return v;
+        });
+    }
+
+    @Override
+    public List<Blog> listByIds(List<Long> ids,User user) {
+        if(ids == null || ids.isEmpty()){
+            return new ArrayList<>();
+        }
+
+        List<Blog> res = super.listByIds(ids);
+
+        Map<Long, Blog> idToBlog = new HashMap<>();
+        for (Blog blog : res) {
+            idToBlog.put(blog.getId(), blog);
+        }
+        List<Blog> ordered = new ArrayList<>(ids.size());
+        for (Long id : ids) {
+            Blog b = idToBlog.get(id);
+            if (b != null) {
+                ordered.add(b);
+            }
+        }
+
+        if (user == null) {
+            for (Blog blog : ordered) {
+                blog.setIsLiked(false);
+                blog.setIsCollected(false);
+            }
+            return ordered;
+        }
+        
+        List<Long> likedIds = interactionStatusMapper.getLikedBlogIds(user.getId(), ids);
+        List<Long> collectedIds = interactionStatusMapper.getCollectedBlogIds(user.getId(), ids);
+
+        Set<Long> likedSet = new HashSet<>(likedIds);
+        Set<Long> collectedSet = new HashSet<>(collectedIds);
+
+        for (Blog blog : ordered) {
+            blog.setIsLiked(likedSet.contains(blog.getId()));
+            blog.setIsCollected(collectedSet.contains(blog.getId()));
+        }
+
+        return ordered;
     }
 }

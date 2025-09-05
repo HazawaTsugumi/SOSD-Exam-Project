@@ -24,10 +24,16 @@ my:
     - /blog/*
     - /blog/ai/*
 
+
 #-------------------------------
     - /tag/*
     - /tag
     - /tag/all/*
+
+    - /blog/detail/*
+
+    - /comment/get
+
 langchain4j:
   community:
     dashscope:

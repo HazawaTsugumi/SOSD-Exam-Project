@@ -113,4 +113,10 @@ public class Blog {
     //文章摘要
     @TableField("`abstract_content`")
     private String abstractContent;
+
+    @TableField(exist = false)
+    private Boolean isLiked;
+
+    @TableField(exist = false)
+    private Boolean isCollected;
 }

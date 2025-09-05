@@ -6,8 +6,13 @@ import com.sosd.domain.DTO.PageDTO;
 import com.sosd.domain.DTO.PageResult;
 import com.sosd.domain.POJO.Blog;
 import com.sosd.domain.POJO.Tag;
+
 import com.sosd.domain.VO.BlogVO;
 import com.sosd.domain.query.BlogsQuery;
+
+import com.sosd.domain.POJO.User;
+
+
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -25,4 +30,12 @@ public interface BlogService extends IService<Blog>{
     List<Tag> getTags();
 
     String postImage(MultipartFile file) throws IOException;
+
+    public Blog getBlogById(Long id,User user,boolean isDetail);
+
+    public void incrCollect(Long blogId, long delta);
+
+    public void incrLike(Long blogId, long delta);
+
+    public List<Blog> listByIds(List<Long> ids,User user);
 }

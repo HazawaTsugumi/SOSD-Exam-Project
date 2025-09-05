@@ -8,5 +8,6 @@ import com.sosd.domain.POJO.TagBlog;
  * 使用 Mybatis Plus 不用写SQL简化开发
  */
 public interface TagBlogMapper extends BaseMapper<TagBlog> {
+
     
 }
