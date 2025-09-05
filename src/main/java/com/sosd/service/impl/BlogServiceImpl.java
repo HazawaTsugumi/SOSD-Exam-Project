@@ -259,8 +259,6 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper,Blog> implements Blo
         blog.setCreateTime(new Timestamp(System.currentTimeMillis()));
         blog.setUpdateTime(new Timestamp(System.currentTimeMillis()));
         blog.setCollect(0L);
-        blog.setUserView(0L);
-        blog.setPageView(0L);
         blog.setRead(0L);
         blog.setComment(0L);
         String content=blog.getContent();

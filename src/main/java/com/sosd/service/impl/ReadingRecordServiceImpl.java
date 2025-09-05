@@ -38,7 +38,7 @@ public class ReadingRecordServiceImpl extends ServiceImpl<ReadingRecordMapper,Re
             blogs.add(blogService.getBlogById(record.getBlogId(), user, false));
         }
 
-        return new PageResult(current.getTotal(), blogs);
+        return new PageResult(current.getTotal(),1L * page, blogs);
     }
     
 }

@@ -83,20 +83,6 @@ public class Blog {
     @TableField("`collect`")
     private Long collect;
 
-    /**
-     * 文章的用户访问量UV，一个用户访问多次只记录一次
-     */
-
-    @TableField("`user_view`")
-    private Long userView;
-
-    /**
-     * 文章的访问量PV，一个用户访问多次记录多次
-     */
-
-    @TableField("`page_view`")
-    private Long pageView;
-
     @TableField("`tag`")
     private String tag;
 

@@ -64,20 +64,6 @@ public class BlogForES {
     @TableField("`collect`")
     private Long collect;
 
-    /**
-     * 文章的用户访问量UV，一个用户访问多次只记录一次
-     */
-    @Field(type = FieldType.Long)
-    @TableField("`user_view`")
-    private Long userView;
-
-    /**
-     * 文章的访问量PV，一个用户访问多次记录多次
-     */
-    @Field(type = FieldType.Long,index = false)
-    @TableField("`page_view`")
-    private Long pageView;
-
     @Field(type = FieldType.Keyword)
     @TableField("`tag`")
     private String tag;
