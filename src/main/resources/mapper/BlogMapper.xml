@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sosd.mapper.BlogMapper">
+
+    <select id="selectPageByTag" resultType="com.sosd.domain.POJO.Blog">
+        select id,title,abstract_content from blog where id in
+        (select blog_id from tag_blog where tag_id in
+        <foreach collection="tagIds" open="(" close=")" separator="," item="id">
+                #{id}
+        </foreach>
+        )
+        order by user_view desc
+    </select>
+</mapper>
