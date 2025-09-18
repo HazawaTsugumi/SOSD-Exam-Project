@@ -66,7 +66,7 @@ public class TokenCheckFilter extends OncePerRequestFilter {
         String requestURI = request.getRequestURI();
         for(String item : properties.getWhitelist()){
 
-            //如果与当前请求的uri相同，则放心
+            //如果与当前请求的uri相同，则放行
             if(pathMatcher.match(item, requestURI)){
                 doFilter(request, response, filterChain);
                 return;

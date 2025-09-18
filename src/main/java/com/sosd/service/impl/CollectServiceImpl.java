@@ -5,7 +5,10 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.sosd.domain.VO.BlogVO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -91,6 +94,8 @@ public class CollectServiceImpl extends ServiceImpl<CollectMapper,Collect> imple
             ids.add(collect.getBlogId());
         }
 
-        return new PageResult(current.getTotal(), blogService.listByIds(ids,user));
+        return new PageResult(current.getTotal()
+                , blogService.list(Wrappers.lambdaQuery(Blog.class).in(Blog::getId,ids))
+                                        .stream().map(BlogVO::convertToVO).toList());
     }
 }

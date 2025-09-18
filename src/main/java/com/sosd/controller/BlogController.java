@@ -1,6 +1,10 @@
 package com.sosd.controller;
 
+import com.baomidou.mybatisplus.core.metadata.OrderItem;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Cache;
 import com.sosd.Exception.BizException;
 import com.sosd.constant.MessageConstant;
 import com.sosd.domain.DTO.BlogDTO;
@@ -8,10 +12,13 @@ import com.sosd.domain.DTO.PageDTO;
 import com.sosd.domain.DTO.PageResult;
 import com.sosd.domain.DTO.Result;
 import com.sosd.domain.POJO.Blog;
-import com.sosd.domain.POJO.Tag;
+import com.sosd.domain.POJO.TagBlog;
 import com.sosd.domain.VO.BlogVO;
-import com.sosd.domain.query.BlogsQuery;
+
 import com.sosd.domain.POJO.User;
+import com.sosd.domain.query.UserBlogsQuery;
+import com.sosd.mapper.TagBlogMapper;
+import com.sosd.repository.BlogDao;
 import com.sosd.service.BlogService;
 import com.sosd.utils.JwtUtil;
 
@@ -19,6 +26,9 @@ import dev.langchain4j.community.model.dashscope.QwenStreamingChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.elasticsearch.client.elc.ElasticsearchTemplate;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +36,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 @RestController
@@ -35,18 +46,28 @@ import java.util.List;
 public class BlogController {
     @Autowired
     private BlogService blogService;
+    @Autowired
+    private ElasticsearchTemplate elasticsearchTemplate;
+    @Autowired
+    private Cache<String,Blog> blogCache;
+    @Autowired
+    private RedisTemplate redisTemplate;
+    @Autowired
+    private BlogDao blogDao;
+    @Autowired
+    private TagBlogMapper tagBlogMapper;
 
-    //根据标签分页查询相关文章,根据创建时间推送,tag为null就不根据标签查
+    //根据标签分页查询相关文章,根据创建时间推送
     @GetMapping("/getBlogsByTag")
-    public Result getBlogsByTag(String tag,int page,int size) {
-        PageResult pageResult =blogService.getBlogsByTag(tag,page,size);
+    public Result getBlogsByTag(Long tagId,int page,int size) {
+        PageResult pageResult =blogService.getBlogsByTag(tagId,page,size);
         return Result.success(pageResult);
     }
 
-    //热门文章推荐,分页查询,标签
-    @GetMapping("/getHotBlogsByTagOrNot")
-    public Result getHotBlogs(@RequestBody BlogsQuery blogsQuery) {
-        PageDTO<BlogVO> pageDTO=blogService.getHotBlogs(blogsQuery);
+    //热门文章推荐,分页查询
+    @GetMapping("/getHotBlogs")
+    public Result getHotBlogs(int page,int size) {
+        PageDTO<BlogVO> pageDTO=blogService.getHotBlogs(page,size);
         return Result.success(pageDTO);
     }
 
@@ -63,16 +84,54 @@ public class BlogController {
         blogService.publish(blogDTO,accessToken);
         return Result.success(null);
     }
-    @GetMapping("/getTags")
-    public Result getTags() {
-        List<Tag> list =blogService.getTags();
-        return Result.success(list);
-    }
+
     @PostMapping("/postImage")
     public Result postImage(MultipartFile file) throws IOException {
         log.info("上传图片文件");
         String url=blogService.postImage(file);
         return Result.success(url);
+    }
+
+    @PutMapping
+    public Result updateBlog(@RequestBody BlogDTO blogDTO) {
+        blogService.updateBlog(blogDTO);
+        return Result.success(null);
+    }
+
+    @GetMapping("/ofUser")
+    public Result getBlogsOfUser(@RequestHeader(value = "Access-Token") String token) {
+        UserBlogsQuery query=new UserBlogsQuery();
+        query.setUserId(token,jwtUtil,objectMapper);
+        Page<Blog> page = query.toMPPage(new OrderItem().setColumn("update_time").setAsc(false));
+        blogService.page(page, Wrappers.lambdaQuery(Blog.class).eq(Blog::getUserId,query.getUserId()));
+
+        return Result.success(BlogVO.convertToVOForPage(page.getRecords()));
+    }
+
+    @DeleteMapping
+    public Result deleteBlog(Long id){
+        blogService.deleteBlog(id);
+        return Result.success(null);
+    }
+    @DeleteMapping("/batch")
+    @Transactional
+    public Result deleteBlogs(String ids){
+        if(ids!=null){
+            List<Blog> list = Arrays.stream(ids.split(",")).map(id -> Blog.deleteById(Long.parseLong(id))).toList();
+            boolean deleted = blogService.removeBatchByIds(list);
+            //删除标签文章映射
+            tagBlogMapper.delete(Wrappers.lambdaQuery(TagBlog.class)
+                    .in(TagBlog::getBlogId,list.stream().map(Blog::getId).toList()));
+            if(deleted){
+                list.forEach(blog -> {blogDao.deleteById(blog.getId());
+                deleteCache(blog.getId().toString());});
+            }
+        }
+        return Result.success(null);
+    }
+    public void deleteCache(String id){
+        redisTemplate.delete(id);
+        blogCache.invalidate(id);
     }
 
     @Autowired
@@ -124,16 +183,16 @@ public class BlogController {
             @PathVariable("id") Long id,
             @RequestHeader(value = "Access-Token", required = false) String token) throws IOException{
 
-        Blog blog;
+        BlogVO blogVO;
         if(token == null){
-            blog = blogService.getBlogById(id,null,true);
+            blogVO = blogService.getBlogById(id,null,true);
         }else{
             String userInfo = jwtUtil.getUserInfo(token);
             User user = objectMapper.readValue(userInfo, User.class);
-            blog = blogService.getBlogById(id, user,true);
+            blogVO = blogService.getBlogById(id, user,true);
         }
 
-        return Result.success(blog);
+        return Result.success(blogVO);
     }
 
 }

@@ -1,5 +1,6 @@
 package com.sosd.mapper;
 
+import com.sosd.domain.POJO.BeRead;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 
@@ -16,12 +17,12 @@ import java.util.List;
  */
 @Mapper
 public interface BlogMapper extends BaseMapper<Blog>{
-    @Options(useGeneratedKeys = true)
-    @Insert("insert into blog (id,title,user_id,content,`like`,create_time,update_time,collect,user_view,page_view,tag,user,`read`,comment,abstract_content)" +
-            "values (#{id},#{title},#{userId},#{content},#{like},#{createTime},#{updateTime},#{collect},#{userView},#{pageView},#{tag},#{user},#{read},#{comment},#{abstractContent})")
-    public Long insert();
-
+//    @Options(useGeneratedKeys = true)
+//    @Insert("insert into blog (id,title,user_id,content,`like`,create_time,update_time,collect,user_view,page_view,tag,user,`read`,comment,abstract_content)" +
+//            "values (#{id},#{title},#{userId},#{content},#{like},#{createTime},#{updateTime},#{collect},#{userView},#{pageView},#{tag},#{user},#{read},#{comment},#{abstractContent})")
+//    public Long insert();
 
     List<Blog> selectPageByTag(List<Long> tagIds);
+
 
 }

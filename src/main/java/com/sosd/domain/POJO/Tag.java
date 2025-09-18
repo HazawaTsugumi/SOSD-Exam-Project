@@ -1,10 +1,8 @@
 package com.sosd.domain.POJO;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 
+import com.sosd.domain.DTO.TagDTO;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -42,6 +40,11 @@ public class Tag {
     @TableField("status")
     private byte status;
 
+    //乐观锁
+    //TODO
+    @Version
+    private Integer version;
+
     public Tag(String name) {
         this.name = name;
     }
@@ -54,6 +57,15 @@ public class Tag {
     public Tag(Long id, byte status) {
         this.id = id;
         this.status = status;
+    }
+
+    public Tag(Long id, String name) {
+        this.id = id;
+        this.name = name;
+    }
+
+    public static Tag of(TagDTO tagDTO) {
+        return new Tag(tagDTO.getId(),tagDTO.getName());
     }
 
 }

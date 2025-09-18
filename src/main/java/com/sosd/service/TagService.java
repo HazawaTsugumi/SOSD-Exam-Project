@@ -6,7 +6,7 @@ import com.sosd.domain.POJO.Tag;
 import java.util.List;
 
 public interface TagService extends IService<Tag> {
-    public void createTag(String tag);
+    void createTag(String tag);
 
     List<Tag> listAllEnabled();
 }

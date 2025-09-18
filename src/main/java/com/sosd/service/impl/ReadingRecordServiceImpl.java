@@ -3,6 +3,8 @@ package com.sosd.service.impl;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.sosd.domain.VO.BlogVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -33,9 +35,9 @@ public class ReadingRecordServiceImpl extends ServiceImpl<ReadingRecordMapper,Re
         wrapper.eq(ReadingRecord::getUserId, user.getId()).orderByDesc(ReadingRecord::getReadingTime);
 
         current = this.page(current, wrapper);
-        List<Blog> blogs = new ArrayList<>();
+        List<BlogVO> blogs = new ArrayList<>();
         for(ReadingRecord record : current.getRecords()) {
-            blogs.add(blogService.getBlogById(record.getBlogId(), user, false));
+            blogs.add(BlogVO.convertToVO(blogService.getOne(Wrappers.lambdaQuery(Blog.class).eq(Blog::getId,record.getBlogId()))));
         }
 
         return new PageResult(current.getTotal(), blogs);

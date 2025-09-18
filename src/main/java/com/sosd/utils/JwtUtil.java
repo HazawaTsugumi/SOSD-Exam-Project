@@ -4,6 +4,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sosd.Exception.BizException;
+import com.sosd.domain.POJO.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -18,7 +22,7 @@ import com.sosd.config.MyProperties;
  */
 @Component
 public class JwtUtil {
-    
+    private static ObjectMapper objectMapper = new ObjectMapper();
     /**
      * 从配置文件中获取密钥
      */
@@ -80,9 +84,24 @@ public class JwtUtil {
      * @return
      */
     public  String getUserInfo(String jwt) {
-
+        //TODO
         //解码 JWT 并获取用户信息
         DecodedJWT decodedJWT = JWT.decode(jwt);
         return decodedJWT.getClaim("userInfo").asString();
+    }
+
+    public User getUser(String jwt) {
+        DecodedJWT decodedJWT = JWT.decode(jwt);
+        String userInfo = decodedJWT.getClaim("userInfo").asString();
+        User user;
+        try {
+            user = objectMapper.readValue(userInfo, User.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+        if(user==null){
+            throw new BizException("用户信息读取错误");
+        }
+        return user;
     }
 }

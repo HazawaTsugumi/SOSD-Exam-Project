@@ -20,4 +20,11 @@ public class CaffeineConfig {
             .maximumSize(1000)
             .build();
     }
+    @Bean
+    public Cache<Integer,Blog> hotBlogsCache() {
+        return Caffeine.newBuilder()
+                .initialCapacity(100)
+                .maximumSize(100)
+                .build();
+    }
 }
