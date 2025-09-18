@@ -230,10 +230,34 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         if (title == null || title.isEmpty() || title.isBlank()) {
             throw new BizException(MessageConstant.TITLE_IS_NULL);
         }
+
+
+        // String userInfo = jwtUtil.getUserInfo(accessToken);
+        // User user;
+        // try {
+        //     user = objectMapper.readValue(userInfo, User.class);
+        // } catch (JsonProcessingException e) {
+        //     throw new RuntimeException(e);
+        // }
+        // blog.setUserId(user.getId());
+        // blog.setUser(user.getName());
+
+
+        // blog.setLike(0L);
+        // blog.setCreateTime(new Timestamp(System.currentTimeMillis()));
+        // blog.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+        // blog.setCollect(0L);
+        // blog.setRead(0L);
+        // blog.setComment(0L);
+        // String content=blog.getContent();
+
+        // if(content==null||content.isBlank()|| content.isEmpty()){
+
         //获取用户信息
         User user = jwtUtil.getUser(accessToken);
         String content = blogDTO.getContent();
         if (content == null || content.isBlank() || content.isEmpty()) {
+
             throw new BizException(MessageConstant.CONTENT_IS_NULL);
         }
         //构建blog对象

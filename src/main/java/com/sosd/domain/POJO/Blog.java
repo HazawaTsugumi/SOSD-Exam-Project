@@ -108,8 +108,11 @@ public class Blog implements Serializable {
     @TableField("`collect`")
     private Long collect;
 
+
+
     @TableField(exist = false)
     private List<Tag> tag;
+
 
     //用户名称
     @Field(type = FieldType.Keyword,index = false)

@@ -94,8 +94,10 @@ public class CollectServiceImpl extends ServiceImpl<CollectMapper,Collect> imple
             ids.add(collect.getBlogId());
         }
 
+
         return new PageResult(current.getTotal()
                 , blogService.list(Wrappers.lambdaQuery(Blog.class).in(Blog::getId,ids))
                                         .stream().map(BlogVO::convertToVO).toList());
+
     }
 }

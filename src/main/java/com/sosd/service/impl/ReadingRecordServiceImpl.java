@@ -40,7 +40,7 @@ public class ReadingRecordServiceImpl extends ServiceImpl<ReadingRecordMapper,Re
             blogs.add(BlogVO.convertToVO(blogService.getOne(Wrappers.lambdaQuery(Blog.class).eq(Blog::getId,record.getBlogId()))));
         }
 
-        return new PageResult(current.getTotal(), blogs);
+        return new PageResult(current.getTotal(),1L * page, blogs);
     }
     
 }
