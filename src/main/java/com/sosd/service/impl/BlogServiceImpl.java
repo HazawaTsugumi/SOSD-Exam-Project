@@ -2,80 +2,47 @@ package com.sosd.service.impl;
 
 import cn.hutool.core.lang.Snowflake;
 import cn.hutool.core.util.IdUtil;
-
-
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
-
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
-import com.hankcs.hanlp.HanLP;
 import com.sosd.Exception.BizException;
+import com.sosd.SpringTask.HotBlogsCalculation;
 import com.sosd.constant.MessageConstant;
-import com.sosd.domain.DTO.BasicData;
-import com.sosd.domain.DTO.BlogDTO;
-
-import com.sosd.domain.DTO.PageDTO;
-import com.sosd.domain.DTO.PageResult;
+import com.sosd.controller.SensitiveWordsController;
+import com.sosd.domain.DTO.*;
 import com.sosd.domain.POJO.*;
-
-import com.sosd.domain.DTO.InteractionStatus;
-import com.sosd.domain.DTO.PageResult;
-import com.sosd.domain.POJO.Blog;
-import com.sosd.domain.POJO.Collect;
-import com.sosd.domain.POJO.Like;
-import com.sosd.domain.POJO.ReadingRecord;
-import com.sosd.domain.POJO.Tag;
-import com.sosd.domain.POJO.User;
-
 import com.sosd.domain.VO.BlogVO;
-import com.sosd.domain.query.BlogsQuery;
 import com.sosd.mapper.BlogMapper;
-
-import com.sosd.mapper.TagBlogMapper;
-
 import com.sosd.mapper.InteractionStatusMapper;
-
+import com.sosd.mapper.TagBlogMapper;
 import com.sosd.mapper.TagMapper;
 import com.sosd.repository.BlogDao;
-import com.sosd.service.BasicDataService;
-import com.sosd.service.BlogService;
-import com.sosd.service.CollectService;
-import com.sosd.service.LikeService;
-import com.sosd.service.ReadingRecordService;
-import com.sosd.service.StatisticsService;
+import com.sosd.service.*;
 import com.sosd.utils.JwtUtil;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.http.Method;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.ibatis.executor.BatchResult;
-import org.commonmark.node.AbstractVisitor;
-import org.commonmark.node.Node;
-import org.commonmark.node.Paragraph;
-import org.commonmark.parser.Parser;
-import org.commonmark.renderer.text.TextContentRenderer;
-import org.springframework.beans.BeanUtils;
+
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.elasticsearch.client.elc.ElasticsearchTemplate;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
-import org.springframework.data.elasticsearch.core.query.Criteria;
-import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
-import org.springframework.data.elasticsearch.core.query.HighlightQuery;
-import org.springframework.data.elasticsearch.core.query.Query;
+import org.springframework.data.elasticsearch.core.query.*;
 import org.springframework.data.elasticsearch.core.query.highlight.Highlight;
 import org.springframework.data.elasticsearch.core.query.highlight.HighlightField;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -84,13 +51,34 @@ import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Service
 @Slf4j
-public class BlogServiceImpl extends ServiceImpl<BlogMapper,Blog> implements BlogService {
+@RequiredArgsConstructor
+public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements BlogService {
     public static final ObjectMapper objectMapper = new ObjectMapper();
-    public static final Parser parser = Parser.builder().build();
+
+    private static final ExecutorService Blog_Count_Increment_Pool= java.util.concurrent.Executors.newFixedThreadPool(1);
+
+    public static final String title="title";
+    public static final String content="content";
+
+    //懒加载
+    private volatile ExecutorService Es_Retry_Pool;
+
+    private void EsRetry(Runnable task) {
+        if(Es_Retry_Pool==null){
+            synchronized (this) {
+                if(Es_Retry_Pool==null){
+                    Es_Retry_Pool = Executors.newFixedThreadPool(1);
+                }
+            }
+        }
+        Es_Retry_Pool.execute(task);
+    }
+
     @Autowired
     private ElasticsearchTemplate elasticsearchTemplate;
     @Autowired
@@ -105,97 +93,92 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper,Blog> implements Blo
     private MinioClient minioClient;
     @Autowired
     private TagBlogMapper tagBlogMapper;
-
     @Autowired
     private BasicDataService basicDataService;
-
     @Autowired
     private Cache<String,Blog> blogCache;
+    @Autowired
+    private SensitiveWordsController sensitiveWordsController;
+    @Autowired
+    private RedisTemplate redisTemplate;
+    public static final String Hot_Blogs="HotBlogs";
 
     @Override
-    public PageResult getBlogsByTag(String tag, int page, int size) {
-        Criteria criteria = new Criteria();
-        if(tag!=null){
-            criteria=new Criteria("tag").fuzzy(tag);
+    //TODO:es的page页码从0开始,mp从1开始
+    public PageResult getBlogsByTag(Long tagId, int page, int size) {
+        //判断标签是否被禁用
+        Tag tag = tagMapper.selectOne(Wrappers.lambdaQuery(Tag.class).eq(Tag::getId, tagId));
+        if(tag==null){
+            throw new BizException("标签不存在");
         }
-        Sort sort=Sort.by(Sort.Direction.DESC, "createTime");
-        PageRequest pageRequest=PageRequest.of(page,size,sort);
-        return getBlogs(size,criteria,pageRequest);
+        if(tag.getStatus()==MessageConstant.DISABLE){
+            throw new BizException("标签已禁用");
+        }
+
+        //只查近一个月内的文章,按阅读量降序排列
+        //TODO
+//        Criteria criteria=new Criteria("tag")
+//                .matches(tag.getName())
+//                .and("createTime")
+//                .greaterThan(Timestamp.valueOf((LocalDateTime.now().minusMonths(1))));
+//        Sort sort= Sort.by(Sort.Direction.DESC, "read");
+//        PageRequest pageRequest=PageRequest.of(page,size,sort);
+//        return getBlogs(criteria,pageRequest);
+        return null;
     }
-    public PageResult getBlogs(int size, Criteria criteria, PageRequest pageRequest) {
+    public PageResult getBlogs(Criteria criteria, PageRequest pageRequest) {
         Query query=new CriteriaQuery(criteria);
         //pageRequest没有设置参数也会有默认参数,即也会分页
         if(pageRequest!=null){
             query.setPageable(pageRequest);
         }
         SearchHits<Blog> response = elasticsearchTemplate.search(query, Blog.class);
-        PageResult pageResult =new PageResult();
-        pageResult.setTotal(response.getTotalHits());
-        List<BlogVO> list=new ArrayList<>();
-        for(int i=0;i<size;i++){
-            Blog blog = response.getSearchHit(i).getContent();
-            BlogVO blogVO=new BlogVO();
-            BeanUtils.copyProperties(blog,blogVO);
-            String content=blog.getContent();
-//            if(content.length()<=50){
-//                blogVO.setContent(content);
-//            }else{
-//                blogVO.setContent(content.substring(0,50));
-//            }
-            list.add(blogVO);
+
+        List<SearchHit<Blog>> searchHits = response.getSearchHits();
+        List<BlogVO> rows=new ArrayList<>();
+        for(int i=0;i<searchHits.size();i++){
+            rows.add(BlogVO.convertToVOForPage(searchHits.get(i).getContent()));
         }
-        pageResult.setRows(list);
-        return pageResult;
+        return new PageResult(response.getTotalHits(),rows);
     }
 
-    //TODO:优化对热门文章的判断
+    @Autowired
+    private Cache<Integer,Blog> hotBlogsCache;
+
     @Override
-    public PageDTO<BlogVO> getHotBlogs(BlogsQuery blogsQuery) {
-        //TODO:多条件排序
-        List<Tag> tags = blogsQuery.getTags();
-        List<Long> tagIds = Collections.emptyList();
-        if (tags != null && !tags.isEmpty()) {
-            tagIds = tags.stream().map(tag -> {
-                return tag.getId();
-            }).toList();
-        }
-        List<Blog> blogs = blogMapper.selectPageByTag(tagIds);
-        if (blogs == null || blogs.isEmpty()) {
-            return PageDTO.empty();
-        }
-        Long total = (long) blogs.size();
-        PageDTO<BlogVO> pageDTO = new PageDTO<>();
-        pageDTO.setTotal(total);
-        Long pages=total % blogsQuery.getPageSize() ==0?total / blogsQuery.getPageSize():total / blogsQuery.getPageSize()+1;
-        pageDTO.setPages(pages);
-        List<Blog> hits = new ArrayList<>();
-        if(total>blogsQuery.getPageSize()){
-            for (int i = 0; i < blogsQuery.getPageSize(); i++) {
-                hits.add(blogs.get(i));
+    public PageDTO<BlogVO> getHotBlogs(int page,int size) {
+        if(hotBlogsCache.getIfPresent(0)==null){
+            log.info("从redis加载热门文章到缓存");
+            //虽然为set类型但已经排序好了
+            Set<Blog> range = redisTemplate.opsForZSet().range(Hot_Blogs, 0, -1);
+            for(int i=0;i<range.size();i++){
+                //每次获取都是新的迭代器
+                Iterator<Blog> iterator = range.iterator();
+                hotBlogsCache.put(i,iterator.next());
             }
-        }else{
-            hits=blogs;
         }
-
-        pageDTO.setList(hits.stream().map(blog -> {
-            BlogVO blogVO = new BlogVO();
-            BeanUtils.copyProperties(blog, blogVO);
-            return blogVO;
-        }).toList());
-
-        return pageDTO;
+        int pages=HotBlogsCalculation.Size;
+        if(pages<page*size){
+            throw new BizException("页码超出");
+        }
+        int from =page*size;
+        int to=from+size;
+        List<BlogVO> rows=new ArrayList<>();
+        for(int i=from;i<to;i++){
+            rows.add(BlogVO.convertToVOForPage(hotBlogsCache.getIfPresent(i)));
+        }
+        return new PageDTO<>((long) pages, (long) (pages % size==0?pages/size:(pages/size+1)), rows);
     }
 
     //TODO:匹配度
     @Override
     public PageResult search(String keyword, int page, int size) {
-        String title="title";
-        String abstractContent="abstractContent";
-        Criteria criteria = new Criteria(title).fuzzy(keyword).or(abstractContent).fuzzy(keyword);
+
+        Criteria criteria = new Criteria(title).matches(keyword).or(content).matches(keyword);
         Query query = new CriteriaQuery(criteria);
         //TODO
         List<HighlightField> highlightFields=new ArrayList<>();
-        highlightFields.add(new HighlightField(abstractContent));
+        highlightFields.add(new HighlightField(content));
         highlightFields.add(new HighlightField(title));
         //TODO:type
         HighlightQuery highlightQuery=new HighlightQuery(new Highlight(highlightFields),null);
@@ -204,7 +187,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper,Blog> implements Blo
         PageRequest pageRequest=PageRequest.of(page,size);
         query.setPageable(pageRequest);
 
-        SearchHits<BlogForES> response = elasticsearchTemplate.search(query, BlogForES.class);
+        SearchHits<Blog> response = elasticsearchTemplate.search(query, Blog.class);
         List<BlogVO> list=new ArrayList<>();
         long total = response.getTotalHits();
         if(total>0){
@@ -212,139 +195,161 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper,Blog> implements Blo
                 size= (int) total;
             }
             for(int i=0;i<size;i++){
-                SearchHit<BlogForES> searchHit = response.getSearchHit(i);
-                BlogForES content = searchHit.getContent();
+                SearchHit<Blog> searchHit = response.getSearchHit(i);
+                Blog result = searchHit.getContent();
                 //es高亮处理关键字后会把处理后的字段放到HighlightFields
                 Map<String, List<String>> highlightFieldMap = searchHit.getHighlightFields();
-                List<String> titles = highlightFieldMap.get("title");
+                List<String> titles = highlightFieldMap.get(title);
                 if(titles!=null && !titles.isEmpty()){
-                    content.setTitle(titles.get(0));
+                    //get(0)是获取整个title里的第1个keyword高亮时的title
+                    result.setTitle(titles.get(0));
                 }
-                List<String> abstractContents = highlightFieldMap.get(abstractContent);
-                if(abstractContents!=null && !abstractContents.isEmpty()){
-                    content.setAbstractContent(abstractContents.get(0));
+                List<String> contents = highlightFieldMap.get(content);
+                if(contents!=null && !contents.isEmpty()){
+                    result.setAbstractContent(contents.get(0));
                 }
-                BlogVO blogVO=new BlogVO();
-                BeanUtils.copyProperties(content,blogVO);
-                list.add(blogVO);
+                list.add(BlogVO.convertToVOForPage(result));
             }
         }
-        PageResult pageResult =new PageResult();
-        pageResult.setTotal(total);
-        pageResult.setRows(list);
-        return pageResult;
+        return new PageResult(total,total%size==0?total/size:(total/size+1),list);
     }
 
+
+    private static final long Retry_Interval = 5000;
+
+    private static final int Max_Retry_Count=3;
+
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
+
     @Override
-    public void publish(BlogDTO blogDTO,String accessToken) {
-        Blog blog=new Blog();
-        BeanUtils.copyProperties(blogDTO,blog);
-        String title=blog.getTitle();
-        if(title==null|| title.isEmpty()||title.isBlank()){
+    @Transactional
+    public void publish(BlogDTO blogDTO, String accessToken) {
+        //空判断
+        String title = blogDTO.getTitle();
+        if (title == null || title.isEmpty() || title.isBlank()) {
             throw new BizException(MessageConstant.TITLE_IS_NULL);
         }
 
-        String userInfo = jwtUtil.getUserInfo(accessToken);
-        User user;
-        try {
-            user = objectMapper.readValue(userInfo, User.class);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
-        blog.setUserId(user.getId());
-        blog.setUser(user.getName());
+
+        // String userInfo = jwtUtil.getUserInfo(accessToken);
+        // User user;
+        // try {
+        //     user = objectMapper.readValue(userInfo, User.class);
+        // } catch (JsonProcessingException e) {
+        //     throw new RuntimeException(e);
+        // }
+        // blog.setUserId(user.getId());
+        // blog.setUser(user.getName());
 
 
-        blog.setLike(0L);
-        blog.setCreateTime(new Timestamp(System.currentTimeMillis()));
-        blog.setUpdateTime(new Timestamp(System.currentTimeMillis()));
-        blog.setCollect(0L);
-        blog.setRead(0L);
-        blog.setComment(0L);
-        String content=blog.getContent();
+        // blog.setLike(0L);
+        // blog.setCreateTime(new Timestamp(System.currentTimeMillis()));
+        // blog.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+        // blog.setCollect(0L);
+        // blog.setRead(0L);
+        // blog.setComment(0L);
+        // String content=blog.getContent();
 
-        if(content==null||content.isBlank()|| content.isEmpty()){
+        // if(content==null||content.isBlank()|| content.isEmpty()){
+
+        //获取用户信息
+        User user = jwtUtil.getUser(accessToken);
+        String content = blogDTO.getContent();
+        if (content == null || content.isBlank() || content.isEmpty()) {
+
             throw new BizException(MessageConstant.CONTENT_IS_NULL);
         }
-        //将文本按段落拆分，每段获取一句摘要，然后拼接起来
-        List<String> paragraphs = divideParagraphs(content);
-        StringBuilder builder=new StringBuilder();
-        for(int i=0;i<paragraphs.size();i++){
-            //TODO
-            List<String> abstractParagraph = HanLP.extractSummary(paragraphs.get(i), 1);
-            builder.append(abstractParagraph.get(0));
+        //构建blog对象
+        Blog blog = Blog.publish(user.getId(), user.getName(), blogDTO);
+
+        List<Tag> tagList = blogDTO.getTags();
+        List<Long> tagIds=null;
+        if(tagList!=null && !tagList.isEmpty()){
+            tagIds= tagList.stream().map(Tag::getId).toList();
         }
-        blog.setAbstractContent(builder.toString());
-        //获取自创标签
-        List<Tag> tags = blogDTO.getTags();
-        List<Tag> newTags = tags.stream().filter(tag -> {
-            return tag.getId() == null;
-        }).toList();
-        //TODO:检验标签是否合法
+        boolean allEnabled=true;
+        List<Tag> tags=null;
+        if(tagIds!=null && !tagIds.isEmpty()){
+            tags = tagMapper.selectList(Wrappers.<Tag>lambdaQuery().in(Tag::getId, tagIds));
+            if(tags==null || tags.isEmpty()){
+                throw new BizException("服务器异常");
+            }
+            //乐观锁,防止发布过程标签被下线,但还是发布成功
+            for (Tag tag : tags) {
+                if (tag.getStatus() == TagBlog.DISABLED) {
+                    allEnabled = false;
+                    break;
+                }
+            }
+        }
+        if(!allEnabled){
+            throw new BizException("所用标签状态变化,请重新选择标签");
+        }
+        blogMapper.insert(blog);
+        //设置标签与文章映射
+        assert tags != null;
+        tagBlogMapper.insert(tags.stream().map(tag ->
+                TagBlog.builder().tagId(tag.getId()).blogId(blog.getId()).enabled(TagBlog.ENABLED).build())
+                .toList());
+        //版本号变更就报错
+        for(Tag tag : tags){
+            tagMapper.updateById(tag);
+        }
 
 
         try {
-            String blogTag="";
-            for(int i=0;i<tags.size();i++){
-                blogTag+=tags.get(i).getName();
-                if(i!=tags.size()-1){
-                    blogTag+=",";
-                }
-            }
-            blog.setTag(blogTag);
-            blogMapper.insert(blog);
-            //插入自创标签
-            tagMapper.insert(newTags);
-            //设置标签与文章映射
-            tagBlogMapper.insert(blogDTO.getTags().stream().map(tag->{
-                TagBlog tagBlog=new TagBlog();
-                tagBlog.setTagId(tag.getId());
-                tagBlog.setBlogId(blog.getId());
-                return tagBlog;
-            }).toList());
-            BlogForES blogForES = BlogForES.of(blog);
-            blogDao.save(blogForES);
+            blogDao.save(blog);
         } catch (Exception e) {
             log.error(e.getMessage());
-            blogDao.deleteById(blog.getId());
-            throw new BizException(MessageConstant.PUBLISH_ERROR);
+            Runnable retry = () -> {
+                int retryCount = 0;
+                boolean success = false;
+                while (retryCount < Max_Retry_Count) {
+                    try {
+                        blogDao.save(blog);
+                        success = true;
+                        break;
+                    } catch (Exception ex) {
+                        log.error("第:{}重试失败",retryCount+1);
+                    }finally {
+                        retryCount++;
+                    }
+                    try {
+                        Thread.sleep(Retry_Interval);
+                    } catch (InterruptedException ex) {
+                        log.error("重试被尝试打断");
+                    }
+                }
+                if(!success){
+                    //本地重试失败,丢给消息队列
+                    rabbitTemplate.convertAndSend("retry.direct","publish.retry",blog);
+                }
+            };
+            EsRetry(retry);
         }
 
         //管理端设置文章个数+1
-        try{
-            BasicData data = basicDataService.getBasicData();
-            data.setBlogCount(data.getBlogCount() + 1L);
-            basicDataService.setBasicData(data);
-        }catch(IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        //添加文章时将文章数据加入缓存中
-        blogCache.put(blog.getId().toString(), blog);
-    }
-    //TODO:记
-    public List<String> divideParagraphs(String content){
-        List<String> paragraphs=new ArrayList<>();
-        Node document=parser.parse(content);
-        document.accept(new AbstractVisitor() {
-            @Override
-            public void visit(Paragraph paragraph) {
-                TextContentRenderer renderer=TextContentRenderer.builder().build();
-                String renderText = renderer.render(paragraph);
-                paragraphs.add(renderText);
+        Blog_Count_Increment_Pool.submit(()->{
+            try{
+                BasicData data = basicDataService.getBasicData();
+                data.setBlogCount(data.getBlogCount() + 1L);
+                basicDataService.setBasicData(data);
+            }catch(IOException e) {
+                throw new RuntimeException(e);
             }
         });
-        return paragraphs;
     }
 
 
-    @Override
-    public List<Tag> getTags() {
-        return tagMapper.selectList(null);
-    }
+
+//    @Override
+//    public List<Tag> getTags() {
+//        return tagMapper.selectList(null);
+//    }
 
     @Override
-    //TODO:记
+    //TODO:
     public String postImage(MultipartFile file) throws IOException {
         if(file==null||file.isEmpty()){
             throw new BizException(MessageConstant.FILE_IS_NULL);
@@ -371,23 +376,20 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper,Blog> implements Blo
         Snowflake snowflake= IdUtil.getSnowflake(0,0);
         long id=snowflake.nextId();
 
-        File image=File.createTempFile(String.valueOf(id),suffix);
+        File image= File.createTempFile(String.valueOf(id),suffix);
         file.transferTo(image);
-        FileInputStream inputStream=new FileInputStream(image);
-        try {
+        try (FileInputStream inputStream = new FileInputStream(image)) {
             minioClient.putObject(PutObjectArgs.builder()
                     .bucket(MessageConstant.SOSD_IMAGE)
                     .object(id + "." + suffix)
                     .stream(inputStream, image.length(), -1)
                     .build());
         } catch (Exception e) {
-            e.printStackTrace();
             throw new BizException(MessageConstant.FAILED_UPLOAD);
-        }finally {
-            inputStream.close();
+        } finally {
             boolean delete = image.delete();
-            if(!delete){
-                log.info(MessageConstant.FAILED_DELETE+":{}",image.getAbsolutePath());
+            if (!delete) {
+                log.info(MessageConstant.FAILED_DELETE + ":{}", image.getAbsolutePath());
             }
         }
         String url;
@@ -398,7 +400,6 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper,Blog> implements Blo
                     .method(Method.GET)
                     .build());
         } catch (Exception e) {
-            e.printStackTrace();
             throw new BizException(MessageConstant.FAILED_GET);
         }
 
@@ -429,6 +430,95 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper,Blog> implements Blo
         return byteRight;
     }
 
+    public  void deleteCache(String id){
+        redisTemplate.delete(id);
+        blogCache.invalidate(id);
+    }
+
+    @Override
+    @Transactional
+    public void updateBlog(BlogDTO blogDTO) {
+        //更改文章标签有单独接口
+        blogDTO.setTags(null);
+        Blog newBlog = Blog.update(blogDTO);
+        boolean updated = updateById(newBlog);
+        if (updated) {
+            //更新失败策略
+            try {
+                elasticsearchTemplate.update(newBlog);
+            } catch (Exception e) {
+                log.error(e.getMessage());
+                Runnable retry = () -> {
+                    int retryCount = 0;
+                    boolean success = false;
+                    while (retryCount < Max_Retry_Count) {
+                        try {
+                            elasticsearchTemplate.update(newBlog);
+                            success = true;
+                            break;
+                        } catch (Exception ex) {
+                            log.error("第:{}重试失败", retryCount + 1);
+                        } finally {
+                            retryCount++;
+                        }
+                        try {
+                            Thread.sleep(Retry_Interval);
+                        } catch (InterruptedException ex) {
+                            log.error("重试被尝试打断");
+                        }
+                    }
+                    if (!success) {
+                        //本地重试失败,丢给消息队列
+                        rabbitTemplate.convertAndSend("retry.direct", "reUpdate.retry", newBlog);
+                    }
+                };
+                EsRetry(retry);
+            }
+
+        }
+
+    }
+
+    @Override
+    @Transactional
+    public void deleteBlog(Long id) {
+        //TODO:验证文章是不是用户的
+        removeById(id);
+        tagBlogMapper.delete(Wrappers.lambdaQuery(TagBlog.class).eq(TagBlog::getBlogId,id));
+        try {
+            elasticsearchTemplate.delete(id.toString(), Blog.class);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            Runnable retry = () -> {
+                int retryCount = 0;
+                boolean success = false;
+                while (retryCount < Max_Retry_Count) {
+                    try {
+                        elasticsearchTemplate.delete(id.toString(), Blog.class);
+                        success = true;
+                        break;
+                    } catch (Exception ex) {
+                        log.error("第:{}重试失败", retryCount + 1);
+                    } finally {
+                        retryCount++;
+                    }
+                    try {
+                        Thread.sleep(Retry_Interval);
+                    } catch (InterruptedException ex) {
+                        log.error("重试被尝试打断");
+                    }
+                }
+                if (!success) {
+                    //本地重试失败,丢给消息队列
+                    rabbitTemplate.convertAndSend("retry.direct", "reDelete.retry", id.toString());
+                }
+            };
+            EsRetry(retry);
+        }
+        deleteCache(id.toString());
+    }
+
+
     @Autowired
     @Lazy
     private LikeService likeService;
@@ -447,50 +537,49 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper,Blog> implements Blo
     @Autowired
     private InteractionStatusMapper interactionStatusMapper;
 
-    @Autowired
-    private AsyncTaskExecutor taskExecutor;
+
+    private final AsyncTaskExecutor taskExecutor;
 
     @Override
-    public Blog getBlogById(Long id,User user,boolean isDetail) {
-        Blog base = this.getById(id);
-
-        if(base == null){
-            throw new BizException(MessageConstant.UNKNOWN_BLOG);
+    public BlogVO getBlogById(Long id, User user, boolean isDetail) {
+        Blog base = blogCache.getIfPresent(id.toString());
+        //Caffeine缓存未命中
+        if(base == null) {
+            base=(Blog)redisTemplate.opsForValue().get(id.toString());
+            //redis缓存未命中
+            if(base==null){
+                base = getById(id);
+            }
+            if(base==null){
+                throw new BizException(MessageConstant.UNKNOWN_BLOG);
+            }
+            blogCache.put(id.toString(), base);
+            redisTemplate.opsForValue().set(id.toString(), base);
         }
 
-        Blog blog = new Blog();
-        BeanUtils.copyProperties(base, blog);
+        BlogVO blogVO=BlogVO.convertToVO(base);
 
-        if(user == null){
-            blog.setIsLiked(false);
-            blog.setIsCollected(false);
-        }else{
-
+        if(user != null){
             InteractionStatus status = interactionStatusMapper.getStatus(user.getId(), id);
-            blog.setIsCollected(status.isCollected());
-            blog.setIsLiked(status.isLiked());
+            blogVO.setIsCollected(status.isCollected());
+            blogVO.setIsLiked(status.isLiked());
 
-            if(isDetail){
+            if (isDetail) {
 
                 taskExecutor.execute(() -> {
                     addReadingRecord(id, user.getId());
-                    this.updateById(base);
+                    //this.updateById(base);
                 });
 
-                blog.setRead(blog.getRead() + 1);
-
-                taskExecutor.execute(() -> {
-                    base.setRead(blog.getRead());
-                    this.updateById(base);
-                });
+                //用set存读过该篇文章的用户的id,防止刷被阅读数
+                redisTemplate.opsForSet().add("blog:be_read:"+base.getId(),user.getId());
             }
+
         }
+        taskExecutor.execute(() -> statisticsService.addStatistics(user));
 
-        taskExecutor.execute(() -> {
-            statisticsService.addStatistics(user);
-        });
 
-        return blog;
+        return blogVO;
     }
 
     private void addReadingRecord(Long blogId,Long userId){
@@ -506,23 +595,17 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper,Blog> implements Blo
         }
     }
 
-    public Blog getById(Long id) {
 
-        Blog cache = blogCache.getIfPresent(id.toString());
-        if(cache != null) {
-            return cache;
-        }
-
-        Blog db = super.getById(id);
-        if(db != null){
-            blogCache.put(id.toString(), db);
-        }
-        return db;
-    }
 
     public boolean updateById(Blog blog){
-        blogCache.put(blog.getId().toString(), blog);
-        return super.updateById(blog);
+        Long id = blog.getId();
+        if(id==null){
+            throw new BizException("修改失败:文章id获取失败");
+        }
+        //先更新数据库再删redis缓存然后删caffeine缓存
+        boolean updated = super.updateById(blog);
+        deleteCache(id.toString());
+        return updated;
     }
 
     public void incrCollect(Long blogId, long delta) {
@@ -556,7 +639,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper,Blog> implements Blo
     }
 
     @Override
-    public List<Blog> listByIds(List<Long> ids,User user) {
+    public List<BlogVO> listByIds(List<Long> ids,User user) {
         if(ids == null || ids.isEmpty()){
             return new ArrayList<>();
         }
@@ -575,25 +658,22 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper,Blog> implements Blo
             }
         }
 
-        if (user == null) {
-            for (Blog blog : ordered) {
-                blog.setIsLiked(false);
-                blog.setIsCollected(false);
+        List<BlogVO> list = ordered.stream().map(BlogVO::convertToVO).toList();
+
+        if (user != null) {
+            List<Long> likedIds = interactionStatusMapper.getLikedBlogIds(user.getId(), ids);
+            List<Long> collectedIds = interactionStatusMapper.getCollectedBlogIds(user.getId(), ids);
+
+            Set<Long> likedSet = new HashSet<>(likedIds);
+            Set<Long> collectedSet = new HashSet<>(collectedIds);
+
+            for (BlogVO blogVO : list) {
+                blogVO.setIsLiked(likedSet.contains(blogVO.getId()));
+                blogVO.setIsCollected(collectedSet.contains(blogVO.getId()));
             }
-            return ordered;
         }
-        
-        List<Long> likedIds = interactionStatusMapper.getLikedBlogIds(user.getId(), ids);
-        List<Long> collectedIds = interactionStatusMapper.getCollectedBlogIds(user.getId(), ids);
-
-        Set<Long> likedSet = new HashSet<>(likedIds);
-        Set<Long> collectedSet = new HashSet<>(collectedIds);
-
-        for (Blog blog : ordered) {
-            blog.setIsLiked(likedSet.contains(blog.getId()));
-            blog.setIsCollected(collectedSet.contains(blog.getId()));
-        }
-
-        return ordered;
+        return list;
     }
+
+
 }

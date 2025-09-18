@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.sosd.domain.DTO.BlogDTO;
 import com.sosd.domain.DTO.PageDTO;
 import com.sosd.domain.DTO.PageResult;
+import com.sosd.domain.POJO.BeRead;
 import com.sosd.domain.POJO.Blog;
 import com.sosd.domain.POJO.Tag;
 
@@ -19,23 +20,28 @@ import java.io.IOException;
 import java.util.List;
 
 public interface BlogService extends IService<Blog>{
-    PageResult getBlogsByTag(String tag, int page, int size);
+    PageResult getBlogsByTag(Long tagId, int page, int size);
 
-    PageDTO<BlogVO> getHotBlogs(BlogsQuery blogsQuery);
+    PageDTO<BlogVO> getHotBlogs(int page,int size);
 
     PageResult search(String keyword, int page, int size);
 
     void publish(BlogDTO blogDTO,String accessToken);
 
-    List<Tag> getTags();
+//    List<Tag> getTags();
 
     String postImage(MultipartFile file) throws IOException;
 
-    public Blog getBlogById(Long id,User user,boolean isDetail);
+    BlogVO getBlogById(Long id, User user, boolean isDetail);
 
-    public void incrCollect(Long blogId, long delta);
+    void incrCollect(Long blogId, long delta);
 
-    public void incrLike(Long blogId, long delta);
+    void incrLike(Long blogId, long delta);
 
-    public List<Blog> listByIds(List<Long> ids,User user);
+    List<BlogVO> listByIds(List<Long> ids, User user);
+
+    void updateBlog(BlogDTO blogDTO);
+
+    void deleteBlog(Long id);
+
 }

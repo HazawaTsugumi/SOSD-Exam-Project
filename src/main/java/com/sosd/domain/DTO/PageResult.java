@@ -10,7 +10,13 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class PageResult {
+
     private Long total;
     private Long pages;
     private List<?> rows;
+
+    public PageResult(Long total, List<?> rows) {
+        this.total = total;
+        this.rows = rows;
+    }
 }

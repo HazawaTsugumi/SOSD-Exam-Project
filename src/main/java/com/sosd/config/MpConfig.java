@@ -1,5 +1,6 @@
 package com.sosd.config;
 
+import com.baomidou.mybatisplus.extension.plugins.inner.OptimisticLockerInnerInterceptor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -22,7 +23,10 @@ public class MpConfig {
 
         //配置 Mybatis Plus 分页助手插件
         interceptor.addInnerInterceptor(new PaginationInnerInterceptor());
-
+        //配置乐观锁插件
+        interceptor.addInnerInterceptor(new OptimisticLockerInnerInterceptor());
         return interceptor;
     }
+
+
 }

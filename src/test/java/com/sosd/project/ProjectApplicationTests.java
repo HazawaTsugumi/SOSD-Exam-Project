@@ -1,34 +1,56 @@
 package com.sosd.project;
 
-import cn.hutool.db.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+
+import cn.hutool.dfa.SensitiveUtil;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Cache;
 import com.hankcs.hanlp.HanLP;
-import org.apache.http.HttpHost;
+import com.sosd.config.SensitiveInit;
+import com.sosd.domain.POJO.BeRead;
+import com.sosd.domain.POJO.Blog;
+import com.sosd.domain.VO.BlogVO;
+import com.sosd.mapper.BlogMapper;
+import com.sosd.repository.BlogDao;
+import com.sosd.service.BlogService;
 import org.commonmark.node.AbstractVisitor;
 import org.commonmark.node.Node;
 import org.commonmark.node.Paragraph;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.text.TextContentRenderer;
-import org.elasticsearch.client.*;
-import org.elasticsearch.client.indices.GetIndexRequest;
-import org.elasticsearch.client.indices.GetIndexResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.elasticsearch.client.elc.ElasticsearchTemplate;
+import org.springframework.data.elasticsearch.client.elc.NativeQuery;
+import org.springframework.data.elasticsearch.core.SearchHit;
+import org.springframework.data.elasticsearch.core.SearchHits;
+import org.springframework.data.elasticsearch.core.query.Criteria;
+import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
+import org.springframework.data.elasticsearch.core.query.Query;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.*;
 
-@SpringBootTest
+//TODO
+@SpringBootTest()
 class ProjectApplicationTests {
 	@Autowired
 	ElasticsearchTemplate elasticsearchTemplate;
 	@Autowired
 	private PasswordEncoder passwordEncoder;
+	@Autowired
+	private BlogService blogService;
+    @Autowired
+    private BlogDao blogDao;
 
 	@Test
 	void contextLoads() {
@@ -65,5 +87,142 @@ class ProjectApplicationTests {
 		});
 		System.out.println(paragraphs);
 
+	}
+
+	@Autowired
+	SensitiveInit sensitiveInit;
+	@Test
+	void test(){
+//		WordTree tree = new WordTree();
+//		tree.addWord("操你妈");
+//		boolean bool = tree.isMatch("我的");
+//		System.out.println(bool);
+		boolean sens = SensitiveUtil.containsSensitive("草泥马");
+		System.out.println(sens);
+	}
+	@Autowired
+	private RedisTemplate redisTemplate;
+	private static final int Size = 100;
+
+	private static final Long Gap = 1000*60*60*24L;
+	@Autowired
+	private BlogMapper blogMapper;
+
+	public static final String Last_Blog_Id="LastBlogId";
+
+	public static final String Hot_Blogs="HotBlogs";
+
+	public static final ObjectMapper objectMapper = new ObjectMapper();
+	@Test
+	public void test5(){
+		List<Long> list = objectMapper.convertValue(redisTemplate.opsForValue().get(Hot_Blogs), new TypeReference<>() {
+		});
+		System.out.println(list);
+	}
+//	@Test
+//	public void hotBlogsCalculation() {
+//		Long lastBlogId = (Long)redisTemplate.opsForValue().get(Last_Blog_Id);
+//		if(lastBlogId==null){
+//			lastBlogId=0L;
+//		}
+//		List<Blog> newRecords;
+//		{
+//			LambdaQueryWrapper<Blog> queryWrapper = new LambdaQueryWrapper<>();
+//			queryWrapper.select(Blog::getId,Blog::getRead).gt(Blog::getId, lastBlogId).orderByDesc(Blog::getId);
+//			Page<Blog> page=new Page<>(0,Size);
+//			newRecords = blogMapper.selectPage(page, queryWrapper).getRecords();
+//		}
+//		if(newRecords==null||newRecords.isEmpty()){
+//			return;
+//		}
+//		redisTemplate.opsForValue().set(Last_Blog_Id,newRecords.get(0).getId());
+//		List<Long> oldList = objectMapper
+//				.convertValue(redisTemplate.opsForValue().get(Hot_Blog_Id), new TypeReference<>() {});
+//		if(oldList ==null|| oldList.isEmpty()){
+//			redisTemplate.opsForValue().set(Hot_Blog_Id,newRecords.stream().map(Blog::getId).toList());
+//			return;
+//		}
+//		LambdaQueryWrapper<Blog> queryWrapper = new LambdaQueryWrapper<>();
+//		List<Blog> oldRecords = blogMapper
+//				.selectList(queryWrapper.select(Blog::getId,Blog::getRead).in(Blog::getId, oldList));
+//		newRecords.addAll(oldRecords);
+//		newRecords.sort(new Comparator<Blog>() {
+//			@Override
+//			public int compare(Blog o1, Blog o2) {
+//				return o2.getRead().compareTo(o1.getRead());
+//			}
+//		});
+//		redisTemplate.opsForValue().set(Hot_Blog_Id,newRecords.stream().limit(Size).map(Blog::getId).toList());
+//	}
+	@Test
+	public void testBlogBatchUpdate(){
+		List<BeRead> list=new ArrayList<>();
+		list.add(new BeRead(1951847729727098882L,2));
+		list.add(new BeRead(1951935008054763522L,3));
+		for(int i=0;i< list.size();i++){
+			blogService.update(Wrappers.lambdaUpdate(Blog.class)
+					.setSql("`read` = `read` + "+list.get(i).getCount())
+					.eq(Blog::getId, list.get(i).getId()));
+		}
+	}
+
+	@Test
+	public void testSearch(){
+		Criteria criteria = new Criteria("title").matches("数据库");
+		Query query=new CriteriaQuery(criteria);
+		SearchHits<Blog> search = elasticsearchTemplate.search(query, Blog.class);
+		System.out.println(search.getSearchHit(0).getContent().getTitle());
+	}
+
+	@Autowired
+	private  Cache<Integer,Blog> hotBlogsCache;
+
+	@Test
+	public void hotBlogsCalculation() {
+		int size = 100;
+
+		PageRequest pageRequest = PageRequest
+				.of(0, Size, Sort.by(Sort.Direction.DESC, "read"));
+		NativeQuery nativeQuery = NativeQuery.builder().withPageable(pageRequest).build();
+		SearchHits<Blog> search = elasticsearchTemplate.search(nativeQuery, Blog.class);
+		List<Blog> list = search.getSearchHits().stream().map(SearchHit::getContent).toList();
+		Set<ZSetOperations.TypedTuple<Blog>> set=new HashSet<>();
+		for(int i=0;i<list.size();i++){
+			ZSetOperations.TypedTuple<Blog> value= ZSetOperations.TypedTuple.of(list.get(i), (double) i);
+			set.add(value);
+			hotBlogsCache.put(i,list.get(i));
+		}
+		redisTemplate.opsForZSet().add(Hot_Blogs,set);
+	}
+	@Test
+	public void testSearch1(){
+		Criteria criteria=new Criteria("tag")
+				.matches("数据库")
+				.and("createTime")
+				.greaterThan(Timestamp.valueOf(LocalDateTime.now().minusMonths(1)));
+//				.lessThan(Timestamp.valueOf((LocalDateTime.now().minusMonths(1))));
+		Query query=new CriteriaQuery(criteria);
+		query.setPageable(PageRequest.of(0,5, Sort.by(Sort.Direction.DESC,"createTime")));
+		SearchHits<Blog> search = elasticsearchTemplate.search(new CriteriaQuery(criteria), Blog.class);
+
+	}
+	@Test
+	public void testZSet(){
+		Set<Blog> range = redisTemplate.opsForZSet().range(Hot_Blogs, 0, -1);
+		int init=0;
+		if(range==null){
+			throw new RuntimeException();
+		}
+		ArrayList<Blog> values=new ArrayList<>(range);
+//		List<Blog> values = list.stream().map(ZSetOperations.TypedTuple::getValue).toList();
+		for(int i=0;i<values.size();i++){
+			System.out.println(values.get(i).getId());
+		}
+	}
+	@Test
+	public void testBlogVOConvert(){
+		Blog blog=new Blog("哈哈哈哈");
+		BlogVO blogVO = BlogVO.convertToVOForPage(blog);
+		System.out.println(blogVO.getContent());
 	}
 }

@@ -21,6 +21,15 @@ public class PageDTO<T> {
 
     private List<T> list;
 
+    public PageDTO(Long total, Long pages, List<T> list) {
+        this.total = total;
+        this.pages = pages;
+        this.list = list;
+    }
+
+    public PageDTO() {
+    }
+
     //使用默认的属性拷贝将PO转换成VO
     public static <VO,PO> PageDTO<VO> of (Page<PO> page, Class<VO> dtoClass) {
         PageDTO<VO> pageDTO=new PageDTO<VO>();
