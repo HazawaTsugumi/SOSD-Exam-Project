@@ -2,6 +2,7 @@ package com.sosd.domain.VO;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.sosd.domain.POJO.Blog;
+import com.sosd.domain.POJO.ImageBlog;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
 
@@ -22,6 +23,7 @@ public class BlogVO {
     private String user;
     private Long read;
     //private Long comment;
+    private List<ImageBlog> imageBlogs;
     //是否被读者点赞
     private Boolean isLiked=false;
     //是否被读者收藏
@@ -33,6 +35,7 @@ public class BlogVO {
             throw new NullPointerException();
         }
         BeanUtils.copyProperties(blog,blogVO);
+
         return blogVO;
     }
 

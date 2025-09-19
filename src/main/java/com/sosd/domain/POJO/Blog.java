@@ -108,7 +108,8 @@ public class Blog implements Serializable {
     @TableField("`collect`")
     private Long collect;
 
-
+    @TableField(exist = false)
+    private List<ImageBlog> imageBlogs;
 
     @TableField(exist = false)
     private List<Tag> tag;

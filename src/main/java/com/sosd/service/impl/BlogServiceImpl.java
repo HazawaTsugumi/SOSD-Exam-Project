@@ -235,27 +235,6 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         }
 
 
-        // String userInfo = jwtUtil.getUserInfo(accessToken);
-        // User user;
-        // try {
-        //     user = objectMapper.readValue(userInfo, User.class);
-        // } catch (JsonProcessingException e) {
-        //     throw new RuntimeException(e);
-        // }
-        // blog.setUserId(user.getId());
-        // blog.setUser(user.getName());
-
-
-        // blog.setLike(0L);
-        // blog.setCreateTime(new Timestamp(System.currentTimeMillis()));
-        // blog.setUpdateTime(new Timestamp(System.currentTimeMillis()));
-        // blog.setCollect(0L);
-        // blog.setRead(0L);
-        // blog.setComment(0L);
-        // String content=blog.getContent();
-
-        // if(content==null||content.isBlank()|| content.isEmpty()){
-
         //获取用户信息
         User user = jwtUtil.getUser(accessToken);
         String content = blogDTO.getContent();
@@ -290,6 +269,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
             throw new BizException("所用标签状态变化,请重新选择标签");
         }
         blogMapper.insert(blog);
+
         //设置标签与文章映射
         assert tags != null;
         tagBlogMapper.insert(tags.stream().map(tag ->
@@ -298,6 +278,12 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         //版本号变更就报错
         for(Tag tag : tags){
             tagMapper.updateById(tag);
+        }
+
+        //创建图片名与文章映射
+        List<ImageBlog> imageBlogs = blogDTO.getImageBlogs();
+        if(imageBlogs!=null && !imageBlogs.isEmpty()){
+            //TODO
         }
 
 
@@ -548,8 +534,15 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
             blogCache.put(id.toString(), base);
             redisTemplate.opsForValue().set(id.toString(), base);
         }
+        //获取图片url
+        List<ImageBlog> imageBlogs = base.getImageBlogs();
+        for(ImageBlog imageBlog : imageBlogs){
+            imageBlog.generateUrl(redisTemplate,minioClient);
+        }
 
         BlogVO blogVO=BlogVO.convertToVO(base);
+
+
 
         if(user != null){
             InteractionStatus status = interactionStatusMapper.getStatus(user.getId(), id);

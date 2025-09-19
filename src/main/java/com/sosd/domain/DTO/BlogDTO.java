@@ -1,5 +1,6 @@
 package com.sosd.domain.DTO;
 
+import com.sosd.domain.POJO.ImageBlog;
 import com.sosd.domain.POJO.Tag;
 import lombok.Data;
 
@@ -12,5 +13,6 @@ public class BlogDTO {
     private List<Tag> tags;
     private String content;
     private String abstractContent;
+    private List<ImageBlog> imageBlogs;
 
 }
