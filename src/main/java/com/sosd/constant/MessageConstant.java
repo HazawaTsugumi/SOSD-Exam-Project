@@ -24,7 +24,7 @@ public class MessageConstant {
 
     public static final String TITLE_IS_NULL="标题不能为空";
 
-    public static final String FILE_IS_NULL="文件不能为空";
+    public static final String FILE_IS_NULL="文件或者文件名不能为空";
 
     public static final String FILENAME_IS_NULL="文件名不能为空";
 

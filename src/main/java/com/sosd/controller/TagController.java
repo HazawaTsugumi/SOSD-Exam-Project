@@ -66,7 +66,7 @@ public class TagController {
     }
 
     @DeleteMapping
-    //逻辑删除,便于使用乐观锁
+    //逻辑删除
     public Result delete(Long id){
         //若标签有被使用,下线标签,若没被使用,删除标签
         TagBlog tagBlog = tagBlogMapper.selectOne(Wrappers.lambdaQuery(TagBlog.class).eq(TagBlog::getTagId, id));

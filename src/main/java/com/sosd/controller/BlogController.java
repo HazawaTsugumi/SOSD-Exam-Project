@@ -16,6 +16,7 @@ import com.sosd.domain.POJO.TagBlog;
 import com.sosd.domain.VO.BlogVO;
 
 import com.sosd.domain.POJO.User;
+import com.sosd.domain.VO.PostImageVO;
 import com.sosd.domain.query.UserBlogsQuery;
 import com.sosd.mapper.TagBlogMapper;
 import com.sosd.repository.BlogDao;
@@ -25,6 +26,9 @@ import com.sosd.utils.JwtUtil;
 import dev.langchain4j.community.model.dashscope.QwenStreamingChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
+import io.minio.GetPresignedObjectUrlArgs;
+import io.minio.MinioClient;
+import io.minio.http.Method;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.elasticsearch.client.elc.ElasticsearchTemplate;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -38,6 +42,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @Slf4j
@@ -56,6 +61,8 @@ public class BlogController {
     private BlogDao blogDao;
     @Autowired
     private TagBlogMapper tagBlogMapper;
+    @Autowired
+    private MinioClient minioClient;
 
     //根据标签分页查询相关文章,根据创建时间推送
     @GetMapping("/getBlogsByTag")
@@ -88,7 +95,29 @@ public class BlogController {
     @PostMapping("/postImage")
     public Result postImage(MultipartFile file) throws IOException {
         log.info("上传图片文件");
-        String url=blogService.postImage(file);
+        PostImageVO postImageVO=blogService.postImage(file);
+        return Result.success(postImageVO);
+    }
+
+    @GetMapping("/image")
+    public Result getImage(String fileName){
+        String url;
+        url = (String) redisTemplate.opsForValue().get("image:"+fileName);
+        if(url==null){
+            try{
+                url = minioClient.getPresignedObjectUrl(
+                        GetPresignedObjectUrlArgs.builder()
+                                .bucket(MessageConstant.SOSD_IMAGE)
+                                .object(fileName)
+                                .expiry(7, TimeUnit.DAYS)
+                                .method(Method.GET)
+                                .build());
+                redisTemplate.opsForValue().set("image:"+fileName,url,7,TimeUnit.DAYS);
+            }catch (Exception ex){
+                throw new BizException("图片获取失败");
+            }
+        }
+
         return Result.success(url);
     }
 
