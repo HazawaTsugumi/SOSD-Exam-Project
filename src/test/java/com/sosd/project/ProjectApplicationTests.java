@@ -7,7 +7,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.hankcs.hanlp.HanLP;
+import com.hankcs.hanlp.collection.sequence.SString;
 import com.sosd.config.SensitiveInit;
+import com.sosd.constant.MessageConstant;
 import com.sosd.domain.POJO.BeRead;
 import com.sosd.domain.POJO.Blog;
 import com.sosd.domain.VO.BlogVO;
@@ -34,6 +36,7 @@ import org.springframework.data.elasticsearch.core.query.Query;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.util.Assert;
 
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -224,5 +227,20 @@ class ProjectApplicationTests {
 		Blog blog=new Blog("哈哈哈哈");
 		BlogVO blogVO = BlogVO.convertToVOForPage(blog);
 		System.out.println(blogVO.getContent());
+	}
+
+	@Test
+	public void checkFileSortRight(){
+		String suffix="jpg";
+		String maxHexString="FFD8FF11111";
+		String magicNumberOfSuffix = MessageConstant.FILE_HEX_MAP.get(suffix);
+		try {
+			//若为空说明后缀名不符合要求
+			Assert.hasLength(magicNumberOfSuffix,"");
+		} catch (IllegalArgumentException e) {
+			System.out.println(false);
+		}
+
+		System.out.println(maxHexString.matches(magicNumberOfSuffix+".*"));;
 	}
 }

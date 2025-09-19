@@ -9,6 +9,7 @@ import com.sosd.domain.POJO.Blog;
 import com.sosd.domain.POJO.Tag;
 
 import com.sosd.domain.VO.BlogVO;
+import com.sosd.domain.VO.PostImageVO;
 import com.sosd.domain.query.BlogsQuery;
 
 import com.sosd.domain.POJO.User;
@@ -30,7 +31,7 @@ public interface BlogService extends IService<Blog>{
 
 //    List<Tag> getTags();
 
-    String postImage(MultipartFile file) throws IOException;
+    PostImageVO postImage(MultipartFile file) throws IOException;
 
     BlogVO getBlogById(Long id, User user, boolean isDetail);
 

@@ -15,12 +15,14 @@ import com.sosd.controller.SensitiveWordsController;
 import com.sosd.domain.DTO.*;
 import com.sosd.domain.POJO.*;
 import com.sosd.domain.VO.BlogVO;
+import com.sosd.domain.VO.PostImageVO;
 import com.sosd.mapper.BlogMapper;
 import com.sosd.mapper.InteractionStatusMapper;
 import com.sosd.mapper.TagBlogMapper;
 import com.sosd.mapper.TagMapper;
 import com.sosd.repository.BlogDao;
 import com.sosd.service.*;
+import com.sosd.utils.FileUtil;
 import com.sosd.utils.JwtUtil;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
@@ -43,13 +45,14 @@ import org.springframework.data.elasticsearch.core.query.highlight.HighlightFiel
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.Assert;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -116,7 +119,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         }
 
         //只查近一个月内的文章,按阅读量降序排列
-        //TODO
+        //TODO:mysql
 //        Criteria criteria=new Criteria("tag")
 //                .matches(tag.getName())
 //                .and("createTime")
@@ -350,84 +353,71 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
 
     @Override
     //TODO:
-    public String postImage(MultipartFile file) throws IOException {
-        if(file==null||file.isEmpty()){
+    public PostImageVO postImage(MultipartFile file) throws IOException {
+        if(!FileUtil.fileAndNameNotNull(file)){
             throw new BizException(MessageConstant.FILE_IS_NULL);
         }
         String fileName = file.getOriginalFilename();
-        if(fileName==null||fileName.isEmpty()){
-            throw new BizException(MessageConstant.FILENAME_IS_NULL);
-        }
+
         String[] arr=fileName.split("\\.");
         String suffix=arr[arr.length-1];
 
-
         byte[] bytes = file.getBytes();
-        //魔数最长为16位16进制数,而1字节为2位16进制,因此截取前8字节
+        //jpg png gif中 魔数最长为16位16进制数,而1字节为2位16进制,因此截取前8字节
         bytes = Arrays.copyOfRange(bytes, 0, MessageConstant.MAX_HEX_LENGTH / 2);
         String hexString = HexFormat.of().formatHex(bytes);
-
 
         if(!checkFileSortRight(suffix,hexString)){
             throw new BizException(MessageConstant.FILE_IS_NOT_IMAGE);
         }
 
-
+        //TODO
         Snowflake snowflake= IdUtil.getSnowflake(0,0);
         long id=snowflake.nextId();
-
-        File image= File.createTempFile(String.valueOf(id),suffix);
-        file.transferTo(image);
-        try (FileInputStream inputStream = new FileInputStream(image)) {
+        String storedFileName=id + "." + suffix;
+        //TODO
+//        File image= File.createTempFile(String.valueOf(id),suffix);
+//        file.transferTo(image);
+        try (InputStream inputStream = file.getInputStream()) {
             minioClient.putObject(PutObjectArgs.builder()
                     .bucket(MessageConstant.SOSD_IMAGE)
-                    .object(id + "." + suffix)
-                    .stream(inputStream, image.length(), -1)
+                    .object(storedFileName)
+                    .stream(inputStream, file.getSize(), -1)
                     .build());
         } catch (Exception e) {
             throw new BizException(MessageConstant.FAILED_UPLOAD);
-        } finally {
-            boolean delete = image.delete();
-            if (!delete) {
-                log.info(MessageConstant.FAILED_DELETE + ":{}", image.getAbsolutePath());
-            }
         }
         String url;
         try {
             url = minioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
                     .bucket(MessageConstant.SOSD_IMAGE)
-                    .object(id +"."+suffix)
+                    .object(storedFileName)
                     .method(Method.GET)
                     .build());
         } catch (Exception e) {
             throw new BizException(MessageConstant.FAILED_GET);
         }
-
-        return url;
+        return PostImageVO.builder().url(url).fileName(storedFileName).build();
     }
 
-
+    /**
+     *
+     * @param suffix:文件后缀名
+     * @param maxHexString:文件的魔数,可能包含多余16进制字符
+     *
+     */
+    //TODO:封装成工具类
     public boolean checkFileSortRight(String suffix,String maxHexString){
         boolean suffixRight=false;
-        for(String rightSuffix:MessageConstant.IMAGE_FILE_SUFFIXES){
-            if (rightSuffix.equals(suffix)) {
-                suffixRight = true;
-                break;
-            }
-        }
-        if(!suffixRight){
+        String magicNumberOfSuffix = MessageConstant.FILE_HEX_MAP.get(suffix);
+        try {
+            //若为空说明后缀名不符合要求
+            Assert.hasLength(magicNumberOfSuffix,"");
+        } catch (IllegalArgumentException e) {
             return false;
         }
 
-        boolean byteRight=false;
-        for(Map.Entry<String,String> entry:MessageConstant.FILE_HEX_MAP.entrySet()){
-            byte hexLengthOfMagicNumber = MessageConstant.getHexLengthOfMagicNumber(suffix);
-            if(entry.getValue().equalsIgnoreCase(maxHexString.substring(0,hexLengthOfMagicNumber))){
-                byteRight=true;
-                break;
-            }
-        }
-        return byteRight;
+        return maxHexString.matches(magicNumberOfSuffix+".*");
     }
 
     public  void deleteCache(String id){
@@ -442,6 +432,8 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         blogDTO.setTags(null);
         Blog newBlog = Blog.update(blogDTO);
         boolean updated = updateById(newBlog);
+
+        //TODO:解耦,函数式编程
         if (updated) {
             //更新失败策略
             try {
@@ -571,7 +563,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
                     //this.updateById(base);
                 });
 
-                //用set存读过该篇文章的用户的id,防止刷被阅读数
+                //用set存读过该篇文章的用户的id,防止被刷阅读数
                 redisTemplate.opsForSet().add("blog:be_read:"+base.getId(),user.getId());
             }
 
